@@ -7,6 +7,10 @@ import numpy as np
 import os
 
 
+dev = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print('Using device:', dev)
+print()
+
 class Actor(nn.Module):
     def __init__(self, s_dim, b_dim, rnn_layers=1, dp=0.2):
         super(Actor, self).__init__()
@@ -23,7 +27,7 @@ class Actor(nn.Module):
         self.dropout = nn.Dropout(p=dp)
         self.softmax = nn.Softmax()
         self.sigmoid = nn.Sigmoid()
-        self.initial_hidden = torch.zeros(self.rnn_layers, self.b_dim, 128, dtype=torch.float32)
+        self.initial_hidden = torch.zeros(self.rnn_layers, self.b_dim, 128, dtype=torch.float32).cuda()
     
     def forward(self, state, hidden=None, train=False):
         state, h = self.gru(state, hidden)
@@ -32,7 +36,7 @@ class Actor(nn.Module):
         state = self.relu(self.fc_policy_1(state))
         state = self.relu(self.fc_policy_2(state))
         cash = self.sigmoid(self.fc_cash_out(state))
-        action = self.sigmoid(self.fc_policy_out(state)).squeeze(-1).t()
+        action = self.sigmoid(self.fc_policy_out(state)).squeeze(-1).transpose(0,1)
         cash = cash.mean(dim=0)
         action = torch.cat(((1 - cash) * action, cash), dim=-1)
         action = action / (action.sum(dim=-1, keepdim=True) + 1e-10)
@@ -52,6 +56,7 @@ class DRL_Torch(Model):
         self.train_hidden = None
         self.trade_hidden = None
         self.actor = Actor(s_dim=self.s_dim, b_dim=self.b_dim, rnn_layers=rnn_layers)
+        self.actor = self.actor.to(dev)
         self.optimizer = optim.Adam(self.actor.parameters(), lr=learning_rate)
     
     def _trade(self, state, train=False):
@@ -61,8 +66,8 @@ class DRL_Torch(Model):
     
     def _train(self):
         self.optimizer.zero_grad()
-        s = torch.stack(self.s_buffer).t()
-        d = torch.stack(self.d_buffer)
+        s = torch.stack(self.s_buffer).transpose(0,1).cuda()
+        d = torch.stack(self.d_buffer).cuda()
         a_hat, self.train_hidden = self.actor(s, self.train_hidden, train=True)
         reward = -(a_hat[:, :-1] * d).mean()
         reward.backward()
@@ -104,9 +109,10 @@ class DRL_Torch(Model):
         for t in range(self.normalize_length, train_length):
             data = asset_data.iloc[:, t - self.normalize_length:t, :].values
             state = ((data - np.mean(data, axis=1, keepdims=True)) / (np.std(data, axis=1, keepdims=True) + 1e-5))[:, -1, :]
-            state = torch.tensor(state)
+            state = torch.tensor(state).cuda()
+            #state = state.to(dev)
             action = self._trade(state, train=True)
-            action_np = action.numpy().flatten()
+            action_np = action.cpu().numpy().flatten()
             r = asset_data[:, :, 'diff'].iloc[t].values * action_np[:-1] - c * np.abs(previous_action - action_np[:-1])
             self.save_transition(state=state, reward=asset_data[:, :, 'diff'].iloc[t].values)
             train_reward.append(r)
@@ -115,6 +121,7 @@ class DRL_Torch(Model):
             if t % self.batch_length == 0:
                 self._train()
         self.reset_model()
+        #print(train_reward)
         print(epoch, 'train_reward', np.sum(np.sum(train_reward, axis=1)), np.mean(train_reward))
         return train_reward, train_actions
     
@@ -126,9 +133,9 @@ class DRL_Torch(Model):
         for t in range(asset_data.shape[1] - test_length, asset_data.shape[1]):
             data = asset_data.iloc[:, t - self.normalize_length:t, :].values
             state = ((data - np.mean(data, axis=1, keepdims=True)) / (np.std(data, axis=1, keepdims=True) + 1e-5))[:, -1, :]
-            state = torch.tensor(state)
+            state = torch.tensor(state).cuda()
             action = self._trade(state=state, train=False)
-            action_np = action.numpy().flatten()
+            action_np = action.cpu().numpy().flatten()
             r = asset_data[:, :, 'diff'].iloc[t].values * action_np[:-1] - c * np.abs(previous_action - action_np[:-1])
             test_reward.append(r)
             test_actions.append(action_np)
@@ -144,15 +151,15 @@ class DRL_Torch(Model):
             for t in range(asset_data.shape[1] - self.batch_length, asset_data.shape[1]):
                 data = asset_data.iloc[:, t - self.normalize_length + 1:t + 1, :].values
                 state = ((data - np.mean(data, axis=1, keepdims=True)) / (np.std(data, axis=1, keepdims=True) + 1e-5))[:, -1, :]
-                state = torch.tensor(state)
+                state = torch.tensor(state).cuda()
                 action = self._trade(state=state, train=False)
-                action_np = action.numpy().flatten()
+                action_np = action.cpu().numpy().flatten()
         else:
             data = asset_data.iloc[:, -self.normalize_length:, :].values
             state = ((data - np.mean(data, axis=1, keepdims=True)) / (np.std(data, axis=1, keepdims=True) + 1e-5))[:, -1, :]
-            state = torch.tensor(state)
+            state = torch.tensor(state).cuda()
             action = self._trade(state=state, train=False)
-            action_np = action.numpy().flatten()
+            action_np = action.cpu().numpy().flatten()
         return action_np[:-1]
     
     @staticmethod

@@ -33,9 +33,8 @@ class PortfolioManager(object):
         if len(self.portfolio) == 0:
             print('Load portfolio first')
             return
-        asset_data = klines(self.portfolio, base_currency=config.base_currency, interval=config.tick_interval, count=bar_count)
-        asset_data = default_pre_process(asset_data)
-        self.asset_data = asset_data
+        self.original_data = klines(self.portfolio, base_currency=config.base_currency, interval=config.tick_interval, count=bar_count)
+        self.asset_data = default_pre_process(self.original_data).fillna(0)
     
     def init_trader(self):
         self.trader = Trader(assets=self.portfolio,
