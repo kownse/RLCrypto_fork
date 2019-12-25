@@ -18,17 +18,18 @@ def download_history(exchange, symble, from_datetime, end_datetime, interval='1h
         else:
             print ("Successfully created the directory %s" % data_path)
 
+    actual_from_datetime = from_datetime
     from_timestamp = exchange.parse8601(from_datetime)
     initial_timestamp = from_timestamp
     end = exchange.parse8601(end_datetime)
     data = []
-    
+
     if interval=='1h':
         delta = minute * 60
     else:
         print("unsupported interval:" + interval)
         exit()
-            
+
     tot = (int)((end - from_timestamp) / delta)
     retry = 0
     pbar = None
@@ -41,7 +42,8 @@ def download_history(exchange, symble, from_datetime, end_datetime, interval='1h
                     first = ohlcvs[0][0]
                     tot = (int)((end - first) / delta)
                     pbar = tqdm(total=tot)
-                    print('start downloading', symble, 'from', datetime.datetime.utcfromtimestamp(first/1000), 'total', tot)
+                    actual_from_datetime = datetime.datetime.utcfromtimestamp(first/1000).strftime("%Y-%m-%d")
+                    print('start downloading', symble, 'from', actual_from_datetime, 'total', tot)
                 from_timestamp = ohlcvs[-1][0] + delta  # good
                 data += ohlcvs
                 if pbar is not None:
@@ -59,9 +61,9 @@ def download_history(exchange, symble, from_datetime, end_datetime, interval='1h
     if pbar is not None:
         pbar.close()
     if len(data) > 0:
-        header = ['timestamp', 'open', 'high', 'low', 'close', 'volume']
+        header = ['timestamp', 'open', 'high', 'low', 'close', 'vol']
         df = pd.DataFrame(data, columns=header)
-        save_path = '{0}/{1}_{2}_{3}.csv'.format(data_path, symble.replace('/','-'), initial_timestamp, from_timestamp)
+        save_path = '{0}/{1}_{2}.csv'.format(data_path, symble.replace('/','-'), actual_from_datetime)
         df.to_csv(save_path, index=False)
 
 if __name__=='__main__':

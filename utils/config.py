@@ -55,6 +55,7 @@ trade_bar_count = None
 train_bar_count = None
 tick_interval = None
 agent = None
+data_mode = None
 
 risk_asset_number = 1
 risk_free_asset_number = 2
@@ -89,6 +90,7 @@ def init_config(config_path):
         global test_length
         global trade_bar_count
         global train_bar_count
+        global data_mode
         global tick_interval
         global agent
         config = json.loads(f.read())
@@ -125,6 +127,7 @@ def init_config(config_path):
         
         trade_bar_count = data_config['trade_bar_count']
         train_bar_count = data_config['train_bar_count']
+        data_mode = data_config['data_mode']
         tick_interval = data_config['tick_interval']
         model_path = model_config[model_type]['model_path']
         

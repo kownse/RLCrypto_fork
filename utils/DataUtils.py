@@ -39,6 +39,11 @@ def generate_tech_data(stock, open_name, close_name, high_name, low_name, max_ti
     data = data.dropna().astype(np.float32)
     return data
 
+def drop_columns(df, columns):
+    for col in columns:
+        if col in df.columns:
+            df = df.drop(col, axis=1)
+    return df
 
 def generate_tech_data_default(stock, open_name, close_name, high_name, low_name, volume_name='vol'):
     open_price = stock[open_name].values
@@ -73,7 +78,8 @@ def generate_tech_data_default(stock, open_name, close_name, high_name, low_name
     data['EMA'] = talib.EMA(close_price)
     data['SAREXT'] = talib.SAREXT(high_price, low_price)
     data['TEMA'] = talib.EMA(close_price)
-    data = data.drop([open_name, close_name, high_name, low_name, 'amount', 'count'], axis=1)
+    #data = data.drop([open_name, close_name, high_name, low_name, volume_name, 'amount', 'count'], axis=1)
+    data = drop_columns(data, [open_name, close_name, high_name, low_name, volume_name, 'amount', 'count'])
     data = data.dropna().astype(np.float32)
     return data
 

@@ -29,12 +29,16 @@ class PortfolioManager(object):
             print('Load portfolio successfully')
             self.portfolio = json.loads(f.read())
     
-    def init_data(self, bar_count):
+    def init_data(self, bar_count, mode="huobi"):
         if len(self.portfolio) == 0:
             print('Load portfolio first')
             return
-        self.original_data = klines(self.portfolio, base_currency=config.base_currency, interval=config.tick_interval, count=bar_count)
-        self.asset_data = default_pre_process(self.original_data).fillna(0)
+        if mode == "huobi":
+            self.original_data = klines(self.portfolio, base_currency=config.base_currency, interval=config.tick_interval, count=bar_count)
+            self.asset_data = default_pre_process(self.original_data).fillna(0)
+        elif mode == "local":
+            self.original_data = klines_local(self.portfolio, interval=config.tick_interval)
+            self.asset_data = default_pre_process(self.original_data).fillna(0)
     
     def init_trader(self):
         self.trader = Trader(assets=self.portfolio,
@@ -152,7 +156,7 @@ if __name__ == '__main__':
         portfolio_manager.trade()
     
     elif command == 'build_model':
-        portfolio_manager.init_data(config.train_bar_count)
+        portfolio_manager.init_data(config.train_bar_count, config.data_mode)
         portfolio_manager.build_model()
     elif command == 'backtest':
         portfolio_manager.init_data(config.train_bar_count)

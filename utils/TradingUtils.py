@@ -9,6 +9,12 @@ from utils.HuobiServices import *
 lmap = lambda func, it: list(map(lambda x: func(x), it))
 lfilter = lambda func, it: list(filter(lambda x: func(x), it))
 
+def basic_process(s, datecol='id'):
+    s.index = pd.DatetimeIndex(s[datecol].apply(lambda x: datetime.datetime.utcfromtimestamp(x) + datetime.timedelta(hours=8)))
+    s = s.drop(datecol, axis=1)
+    s['avg'] = (np.mean(s[['open', 'high', 'low', 'close']], axis=1))
+    s['diff'] = np.log(s['close'] / s['close'].shift(1)).fillna(0)
+    return s
 
 def kline(asset, base_currency='btc', interval='60min', count=2000):
     s = get_kline('{0}{1}'.format(asset, base_currency), interval, count)
@@ -17,16 +23,20 @@ def kline(asset, base_currency='btc', interval='60min', count=2000):
     s = pd.DataFrame(s)[::-1]
     if s.shape[0] < count:
         return None
-    s.index = pd.DatetimeIndex(s['id'].apply(lambda x: datetime.datetime.utcfromtimestamp(x) + datetime.timedelta(hours=8)))
-    s = s.drop('id', axis=1)
-    s['avg'] = (np.mean(s[['open', 'high', 'low', 'close']], axis=1))
-    s['diff'] = np.log(s['close'] / s['close'].shift(1)).fillna(0)
-    return s
+    
+    return basic_process(s)
 
 
 def klines(assets, base_currency='btc', interval='60min', count=2000):
     return lfilter(lambda x: x[1] is not None, lmap(lambda x: (x, kline(x, base_currency=base_currency, interval=interval, count=count)), assets))
 
+def kline_local(asset, interval='1h'):
+    s = pd.read_csv(asset)
+    s.timestamp = s.timestamp.apply(lambda x: (int)(x / 1000))
+    return basic_process(s, 'timestamp')
+
+def klines_local(assets, interval='1h'):
+    return lfilter(lambda x: x[1] is not None, lmap(lambda x: (x, kline_local(x, interval=interval)), assets))
 
 def re_balance(target_percent,
                symbol,
