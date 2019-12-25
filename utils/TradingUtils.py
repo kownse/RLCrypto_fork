@@ -26,7 +26,6 @@ def kline(asset, base_currency='btc', interval='60min', count=2000):
     
     return basic_process(s)
 
-
 def klines(assets, base_currency='btc', interval='60min', count=2000):
     return lfilter(lambda x: x[1] is not None, lmap(lambda x: (x, kline(x, base_currency=base_currency, interval=interval, count=count)), assets))
 

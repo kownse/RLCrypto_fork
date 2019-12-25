@@ -3,6 +3,7 @@ import sys
 from utils.TradingUtils import *
 from trader import *
 from utils import config
+from sklearn.preprocessing import StandardScaler
 
 CONFIG_PATH = './config/config.json'
 if not os.path.exists(CONFIG_PATH):
@@ -35,10 +36,14 @@ class PortfolioManager(object):
             return
         if mode == "huobi":
             self.original_data = klines(self.portfolio, base_currency=config.base_currency, interval=config.tick_interval, count=bar_count)
-            self.asset_data = default_pre_process(self.original_data).fillna(0)
         elif mode == "local":
             self.original_data = klines_local(self.portfolio, interval=config.tick_interval)
-            self.asset_data = default_pre_process(self.original_data).fillna(0)
+
+        self.asset_data = default_pre_process(self.original_data).fillna(0)
+        # Apply global standard scaler
+        # for idx in range(self.asset_data.shape[0]):
+        #     scaler = StandardScaler()
+        #     self.asset_data.iloc[idx] = scaler.fit_transform(self.asset_data.iloc[idx])
     
     def init_trader(self):
         self.trader = Trader(assets=self.portfolio,
