@@ -202,7 +202,7 @@ class DRL_Torch(Model):
                 current_model_reward = np.sum(np.sum(test_reward, axis=1))
                 if current_model_reward > best_model_reward:
                     best_model_reward = current_model_reward
-                    print('save best model for current_reward:', current_model_reward)
+                    print('save best model for current_reward:', current_model_reward, 'to', best_model_path)
                     model.save_model(best_model_path)
                 if current_model_reward > pass_threshold:
                     break

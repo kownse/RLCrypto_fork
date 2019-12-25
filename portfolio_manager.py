@@ -56,7 +56,7 @@ class PortfolioManager(object):
                              trace_order=config.trace_order,
                              debug_mode=config.debug_mode)
     
-    def load_model(self):
+    def load_model(self, path=config.model_path):
         if len(self.portfolio) == 0 or self.asset_data is None:
             print('Init data first')
             return
@@ -66,7 +66,7 @@ class PortfolioManager(object):
                                   learning_rate=config.learning_rate,
                                   batch_length=config.batch_length,
                                   normalize_length=config.normalize_length)
-        self.agent.load_model(model_path=config.model_path)
+        self.agent.load_model(model_path=path)
     
     def build_model(self):
         if len(self.portfolio) == 0 or self.asset_data is None:
@@ -83,10 +83,20 @@ class PortfolioManager(object):
                                                    model_path=config.model_path)
     
     def back_test(self):
-        if len(self.portfolio) == 0 or self.asset_data is None:
+        if len(self.portfolio) == 0:
             print("Init data first")
             return
-        self.agent.back_test(asset_data=self.asset_data, c=config.fee, test_length=config.test_length)
+        if self.asset_data is None:
+            print("Load model first")
+            return
+
+        test_lengh = self.asset_data.shape[1] - config.train_length
+        test_reward, test_actions =self.agent.back_test(asset_data=self.asset_data, c=config.fee,
+                            test_length=test_lengh)
+        market = self.asset_data.ix[:, -test_lengh:, 'diff'].cumsum()
+        result = pd.DataFrame(test_reward, columns=['return'], index=market.index).cumsum()
+        result['market'] = market
+        return result
     
     def trade(self):
         print('=' * 100)
