@@ -38,7 +38,7 @@ class Actor(nn.Module):
         cash = self.sigmoid(self.fc_cash_out(state))
         action = self.sigmoid(self.fc_policy_out(state)).squeeze(-1).transpose(0,1)
         cash = cash.mean(dim=0)
-        action = torch.cat(((1 - cash) * action, cash), dim=-1)
+        action = torch.cat(((1 - cash) * action, cash), dim=-1).cuda()
         action = action / (action.sum(dim=-1, keepdim=True) + 1e-10)
         return action, h.data
 
@@ -86,13 +86,13 @@ class DRL_Torch(Model):
     def save_transition(self, state, reward):
         if self.pointer < self.batch_length:
             self.s_buffer.append(state)
-            self.d_buffer.append(torch.tensor(reward, dtype=torch.float32))
+            self.d_buffer.append(torch.tensor(reward, dtype=torch.float32).cuda())
             self.pointer += 1
         else:
             self.s_buffer.pop(0)
             self.d_buffer.pop(0)
             self.s_buffer.append(state)
-            self.d_buffer.append(torch.tensor(reward, dtype=torch.float32))
+            self.d_buffer.append(torch.tensor(reward, dtype=torch.float32).cuda())
     
     def load_model(self, model_path='./DRL_Torch'):
         self.trainer.load_model(model_path)

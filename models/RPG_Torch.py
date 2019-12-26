@@ -1,11 +1,15 @@
 # -*- coding:utf-8 -*-
 from models.Model import *
+from models.ModelTrainer import *
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import os
 
+dev = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print('Using device:', dev)
+print()
 
 class Actor(nn.Module):
     def __init__(self, s_dim, a_dim, b_dim, rnn_layers=1, dp=0.2):
@@ -25,7 +29,7 @@ class Actor(nn.Module):
         self.tanh = nn.Tanh()
         self.dropout = nn.Dropout(p=dp)
         self.softmax = nn.Softmax(dim=-1)
-        self.initial_hidden = torch.zeros(self.rnn_layers, self.b_dim, 128, dtype=torch.float32)
+        self.initial_hidden = torch.zeros(self.rnn_layers, self.b_dim, 128, dtype=torch.float32).cuda()
     
     def forward(self, state, hidden=None, train=False):
         state, h = self.gru(state, hidden)
@@ -61,22 +65,25 @@ class RPG_Torch(Model):
         self.train_hidden = None
         self.trade_hidden = None
         self.actor = Actor(s_dim=self.s_dim, a_dim=self.a_dim, b_dim=self.b_dim, rnn_layers=rnn_layers)
+        self.actor = self.actor.to(dev)
+
         self.optimizer = optim.Adam(self.actor.parameters(), lr=learning_rate)
+        self.trainer = ModelTrainer(self)
     
     def _trade(self, state, train=False):
         with torch.no_grad():
             a, _, self.trade_hidden = self.actor(state[:, None, :], self.trade_hidden, train=False)
         if train:
-            return torch.multinomial(a[:, 0, :], 1)
+            return torch.multinomial(a[:, 0, :], 1).cuda()
         else:
             return a[:, 0, :].argmax(dim=1)
     
     def _train(self):
         self.optimizer.zero_grad()
-        s = torch.stack(self.s_buffer).t()
-        s_next = torch.stack(self.s_next_buffer).t()
-        r = torch.stack(self.r_buffer).t()
-        a = torch.stack(self.a_buffer).t()
+        s = torch.stack(self.s_buffer).transpose(0,1).cuda()
+        s_next = torch.stack(self.s_next_buffer).transpose(0,1).cuda()
+        r = torch.stack(self.r_buffer).transpose(0,1).cuda()
+        a = torch.stack(self.a_buffer).transpose(0,1).cuda()
         a_hat, s_next_hat, self.train_hidden = self.actor(s, self.train_hidden, train=True)
         mse_loss = torch.nn.functional.mse_loss(s_next_hat, s_next)
         nll = -torch.log(a_hat.gather(2, a))
@@ -100,7 +107,7 @@ class RPG_Torch(Model):
         if self.pointer < self.batch_length:
             self.s_buffer.append(state)
             self.a_buffer.append(action)
-            self.r_buffer.append(torch.tensor(reward[:, None], dtype=torch.float32))
+            self.r_buffer.append(torch.tensor(reward[:, None], dtype=torch.float32).cuda())
             self.s_next_buffer.append(next_state)
             self.pointer += 1
         else:
@@ -110,16 +117,14 @@ class RPG_Torch(Model):
             self.s_next_buffer.pop(0)
             self.s_buffer.append(state)
             self.a_buffer.append(action)
-            self.r_buffer.append(torch.tensor(reward[:, None], dtype=torch.float32))
+            self.r_buffer.append(torch.tensor(reward[:, None], dtype=torch.float32).cuda())
             self.s_next_buffer.append(next_state)
     
     def load_model(self, model_path='./RPG_Torch'):
-        self.actor = torch.load(model_path + '/model.pkl')
+        self.trainer.load_model(model_path)
     
     def save_model(self, model_path='./RPG_Torch'):
-        if not os.path.exists(model_path):
-            os.mkdir(model_path)
-        torch.save(self.actor, model_path + '/model.pkl')
+        self.trainer.save_model(model_path)
     
     def train(self, asset_data, c, train_length, epoch=0):
         self.reset_model()
@@ -127,13 +132,11 @@ class RPG_Torch(Model):
         train_reward = []
         train_actions = []
         for t in range(self.normalize_length, train_length):
-            data = asset_data.iloc[:, t - self.normalize_length:t, :].values
-            state = ((data - np.mean(data, axis=1, keepdims=True)) / (np.std(data, axis=1, keepdims=True) + 1e-5))[:, -1, :]
-            state = torch.tensor(state)
+            state = self.trainer.check_cache_get_state(asset_data, t, self.normalize_length, self.trainer.all_train_states)
             next_state = asset_data[:, :, 'diff'].iloc[t].values
-            next_state = torch.tensor(next_state)[:, None]
+            next_state = torch.tensor(next_state)[:, None].cuda()
             action = self._trade(state, train=True)
-            action_np = action.numpy().flatten()
+            action_np = action.cpu().numpy().flatten()
             r = asset_data[:, :, 'diff'].iloc[t].values * action_np - c * np.abs(previous_action - action_np)
             self.save_transition(state=state, action=action, next_state=next_state, reward=r)
             train_reward.append(r)
@@ -151,11 +154,9 @@ class RPG_Torch(Model):
         test_reward = []
         test_actions = []
         for t in range(asset_data.shape[1] - test_length, asset_data.shape[1]):
-            data = asset_data.iloc[:, t - self.normalize_length:t, :].values
-            state = ((data - np.mean(data, axis=1, keepdims=True)) / (np.std(data, axis=1, keepdims=True) + 1e-5))[:, -1, :]
-            state = torch.tensor(state)
+            state = self.trainer.check_cache_get_state(asset_data, t, asset_data.shape[1] - test_length, self.trainer.all_train_states)
             action = self._trade(state=state, train=False)
-            action_np = action.numpy().flatten()
+            action_np = action.cpu().numpy().flatten()
             r = asset_data[:, :, 'diff'].iloc[t].values * action_np - c * np.abs(previous_action - action_np)
             test_reward.append(r)
             test_actions.append(action_np)
@@ -165,21 +166,7 @@ class RPG_Torch(Model):
         return test_reward, test_actions
     
     def trade(self, asset_data):
-        if self.trade_hidden is None:
-            self.reset_model()
-            action_np = np.zeros(asset_data.shape[0])
-            for t in range(asset_data.shape[1] - self.batch_length, asset_data.shape[1]):
-                data = asset_data.iloc[:, t - self.normalize_length + 1:t + 1, :].values
-                state = ((data - np.mean(data, axis=1, keepdims=True)) / (np.std(data, axis=1, keepdims=True) + 1e-5))[:, -1, :]
-                state = torch.tensor(state)
-                action = self._trade(state=state, train=False)
-                action_np = action.numpy().flatten()
-        else:
-            data = asset_data.iloc[:, -self.normalize_length:, :].values
-            state = ((data - np.mean(data, axis=1, keepdims=True)) / (np.std(data, axis=1, keepdims=True) + 1e-5))[:, -1, :]
-            state = torch.tensor(state)
-            action = self._trade(state=state, train=False)
-            action_np = action.numpy().flatten()
+        action_np = self.trainer.train(asset_data)
         return action_np/(np.sum(action_np)+1e-10)
     
     @staticmethod
@@ -192,23 +179,13 @@ class RPG_Torch(Model):
                          learning_rate,
                          pass_threshold,
                          model_path):
-        current_model_reward = -np.inf
-        model = None
-        while current_model_reward < pass_threshold:
-            model = RPG_Torch(s_dim=asset_data.shape[2],
-                              a_dim=2,
-                              b_dim=asset_data.shape[0],
-                              batch_length=batch_length,
-                              learning_rate=learning_rate,
-                              rnn_layers=1,
-                              normalize_length=normalize_length)
-            model.reset_model()
-            for e in range(max_epoch):
-                train_reward, train_actions = model.train(asset_data, c=c, train_length=train_length, epoch=e)
-                test_actions, test_reward = model.back_test(asset_data, c=c, test_length=asset_data.shape[1] - train_length)
-                current_model_reward = np.sum(np.mean(test_reward, axis=1))
-                if current_model_reward > pass_threshold:
-                    break
-        print('model created successfully, backtest reward:', current_model_reward)
-        model.save_model(model_path)
-        return model
+        return ModelTrainer.create_new_model(RPG_Torch,
+                                            asset_data,
+                                            c,
+                                            normalize_length,
+                                            batch_length,
+                                            train_length,
+                                            max_epoch,
+                                            learning_rate,
+                                            pass_threshold,
+                                            model_path)
