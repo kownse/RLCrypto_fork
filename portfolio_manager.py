@@ -4,6 +4,7 @@ from utils.TradingUtils import *
 from trader import *
 from utils import config
 from sklearn.preprocessing import StandardScaler
+from models.ModelTrainer import *
 
 CONFIG_PATH = './config/config.json'
 if not os.path.exists(CONFIG_PATH):
@@ -65,22 +66,53 @@ class PortfolioManager(object):
                                   a_dim=2,
                                   learning_rate=config.learning_rate,
                                   batch_length=config.batch_length,
-                                  normalize_length=config.normalize_length)
+                                  rnn_layers=config.rnn_layers,
+                                  normalize_length=config.normalize_length,
+                                  rnn_type=config.rnn_type)
         self.agent.load_model(model_path=path)
     
     def build_model(self):
         if len(self.portfolio) == 0 or self.asset_data is None:
             print('Init data first')
             return
-        self.agent = config.agent.create_new_model(asset_data=self.asset_data,
-                                                   c=config.fee,
-                                                   normalize_length=config.normalize_length,
-                                                   batch_length=config.batch_length,
-                                                   train_length=config.train_length,
-                                                   max_epoch=config.max_training_epoch,
-                                                   learning_rate=config.learning_rate,
-                                                   pass_threshold=config.reward_threshold,
-                                                   model_path=config.model_path)
+        self.agent = ModelTrainer.create_new_model(ModelClass=config.agent,
+                                            asset_data=self.asset_data,
+                                            c=config.fee,
+                                            normalize_length=config.normalize_length,
+                                            rnn_layers=config.rnn_layers,
+                                            rnn_type=config.rnn_type,
+                                            batch_length=config.batch_length,
+                                            train_length=config.train_length,
+                                            max_epoch=config.max_training_epoch,
+                                            learning_rate=config.learning_rate,
+                                            model_path=config.model_path,
+                                            patient=config.patient,
+                                            patient_rounds=config.patient_rounds)
+
+    def build_model_batch(self):
+        if len(self.portfolio) == 0 or self.asset_data is None:
+            print('Init data first')
+            return
+
+        params = [
+            (1, 'lstm'),
+            (2, 'gru'),
+            (2, 'lstm')
+        ]
+        for (rnn_layers, rnn_type) in params:
+            ModelTrainer.create_new_model(ModelClass=config.agent,
+                                            asset_data=self.asset_data,
+                                            c=config.fee,
+                                            normalize_length=config.normalize_length,
+                                            rnn_layers=rnn_layers,
+                                            rnn_type=rnn_type,
+                                            batch_length=config.batch_length,
+                                            train_length=config.train_length,
+                                            max_epoch=config.max_training_epoch,
+                                            learning_rate=config.learning_rate,
+                                            model_path=config.model_path,
+                                            patient=config.patient,
+                                            patient_rounds=config.patient_rounds)
     
     def back_test(self):
         if len(self.portfolio) == 0:
@@ -173,6 +205,9 @@ if __name__ == '__main__':
     elif command == 'build_model':
         portfolio_manager.init_data(config.train_bar_count, config.data_mode)
         portfolio_manager.build_model()
+    elif command == 'build_model_batch':
+        portfolio_manager.init_data(config.train_bar_count, config.data_mode)
+        portfolio_manager.build_model_batch()
     elif command == 'backtest':
         portfolio_manager.init_data(config.train_bar_count)
         portfolio_manager.load_model()

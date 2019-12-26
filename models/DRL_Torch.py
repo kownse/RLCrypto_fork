@@ -12,12 +12,15 @@ print('Using device:', dev)
 print()
 
 class Actor(nn.Module):
-    def __init__(self, s_dim, b_dim, rnn_layers=1, dp=0.2):
+    def __init__(self, s_dim, b_dim, rnn_layers=1, dp=0.2, rnn_type='gru'):
         super(Actor, self).__init__()
         self.s_dim = s_dim
         self.b_dim = b_dim
         self.rnn_layers = rnn_layers
-        self.gru = nn.GRU(self.s_dim, 128, self.rnn_layers, batch_first=True)
+        if rnn_type == 'gru':
+            self.rnn = nn.GRU(self.s_dim, 128, self.rnn_layers, batch_first=True)
+        elif rnn_type == 'lstm':
+            self.rnn = nn.LSTM(self.s_dim, 128, self.rnn_layers, batch_first=True)
         self.fc_policy_1 = nn.Linear(128, 128)
         self.fc_policy_2 = nn.Linear(128, 64)
         self.fc_policy_out = nn.Linear(64, 1)
@@ -30,7 +33,7 @@ class Actor(nn.Module):
         self.initial_hidden = torch.zeros(self.rnn_layers, self.b_dim, 128, dtype=torch.float32).cuda()
     
     def forward(self, state, hidden=None, train=False):
-        state, h = self.gru(state, hidden)
+        state, h = self.rnn(state, hidden)
         if train:
             state = self.dropout(state)
         state = self.relu(self.fc_policy_1(state))
@@ -44,7 +47,7 @@ class Actor(nn.Module):
 
 
 class DRL_Torch(Model):
-    def __init__(self, s_dim, b_dim, a_dim=1, batch_length=64, learning_rate=1e-3, rnn_layers=1, normalize_length=10):
+    def __init__(self, s_dim, b_dim, a_dim=1, batch_length=64, learning_rate=1e-3, rnn_layers=1, normalize_length=10, rnn_type='gru'):
         self.s_dim = s_dim
         self.b_dim = b_dim
         self.batch_length = batch_length
@@ -109,24 +112,3 @@ class DRL_Torch(Model):
     def trade(self, asset_data):
         action_np = self.trainer.trade(asset_data)
         return action_np[:-1]
-    
-    @staticmethod
-    def create_new_model(asset_data,
-                         c,
-                         normalize_length,
-                         batch_length,
-                         train_length,
-                         max_epoch,
-                         learning_rate,
-                         pass_threshold,
-                         model_path):
-        return ModelTrainer.create_new_model(DRL_Torch,
-                                            asset_data,
-                                            c,
-                                            normalize_length,
-                                            batch_length,
-                                            train_length,
-                                            max_epoch,
-                                            learning_rate,
-                                            pass_threshold,
-                                            model_path)

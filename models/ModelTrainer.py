@@ -98,24 +98,33 @@ class ModelTrainer:
                          asset_data,
                          c,
                          normalize_length,
+                         rnn_layers,
+                         rnn_type,
                          batch_length,
                          train_length,
                          max_epoch,
                          learning_rate,
-                         pass_threshold,
-                         model_path):
+                         model_path,
+                         patient=10,
+                         patient_rounds=3):
+        torch.cuda.empty_cache()
+        round = 0
         current_model_reward = -np.inf
         best_model_reward = -np.inf
+        model_path = '%s_%d%s' % (model_path, rnn_layers, rnn_type)
         best_model_path = model_path + '_best'
         model = None
-        while current_model_reward < pass_threshold:
+        while round < patient_rounds:
+            round = round + 1
+            unbreak_epoch = 0
             model = ModelClass(s_dim=asset_data.shape[2],
                               a_dim=2,
                               b_dim=asset_data.shape[0],
                               batch_length=batch_length,
                               learning_rate=learning_rate,
-                              rnn_layers=1,
-                              normalize_length=normalize_length)
+                              rnn_layers=rnn_layers,
+                              normalize_length=normalize_length,
+                              rnn_type=rnn_type)
             model.reset_model()
             for e in range(max_epoch):
                 train_reward, train_actions = model.train(asset_data, c=c, train_length=train_length, epoch=e)
@@ -123,11 +132,14 @@ class ModelTrainer:
                 current_model_reward = np.sum(np.sum(test_reward, axis=1))
                 if current_model_reward > best_model_reward:
                     best_model_reward = current_model_reward
-                    model.save_model(best_model_path)
+                    model.save_model('%s_%.2f' % (best_model_path, current_model_reward))
                     print('save best model for current_reward:', current_model_reward, 'to', best_model_path)
-                if current_model_reward > pass_threshold:
-                    print('current_model_reward > pass_threshold')
-                    break
+                    unbreak_epoch = 0
+                else:
+                    unbreak_epoch = unbreak_epoch + 1
+                    if unbreak_epoch >patient:
+                        print("No more patient")
+                        break
         print('model created successfully, backtest reward:', current_model_reward)
         model.save_model(model_path)
         return model

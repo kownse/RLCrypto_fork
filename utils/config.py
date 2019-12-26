@@ -45,6 +45,10 @@ max_asset_percent = None
 max_order_waiting_time = None
 fee = None
 normalize_length = None
+rnn_layers = None
+rnn_type = None
+patient = None
+patient_rounds = None
 batch_length = None
 learning_rate = None
 reward_threshold = None
@@ -82,6 +86,10 @@ def init_config(config_path):
         global max_order_waiting_time
         global fee
         global normalize_length
+        global rnn_layers
+        global rnn_type
+        global patient
+        global patient_rounds
         global batch_length
         global learning_rate
         global reward_threshold
@@ -117,6 +125,10 @@ def init_config(config_path):
         
         fee = train_config['fee']
         normalize_length = train_config['normalize_length']
+        rnn_layers = train_config['rnn_layers']
+        rnn_type = train_config['rnn_type']
+        patient = train_config['patient']
+        patient_rounds = train_config['patient_rounds']
         batch_length = train_config['batch_length']
         learning_rate = train_config['learning_rate']
         reward_threshold = train_config['reward_threshold']
