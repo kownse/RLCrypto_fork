@@ -95,17 +95,19 @@ class PortfolioManager(object):
             return
 
         params = [
-            (1, 'lstm'),
-            (2, 'gru'),
-            (2, 'lstm')
+            (1, 'gru', 384),
+            (1, 'lstm', 384),
+            (2, 'gru', 384),
+            (2, 'lstm', 384)
         ]
-        for (rnn_layers, rnn_type) in params:
+        for (rnn_layers, rnn_type, linear_base) in params:
             ModelTrainer.create_new_model(ModelClass=config.agent,
                                             asset_data=self.asset_data,
                                             c=config.fee,
                                             normalize_length=config.normalize_length,
                                             rnn_layers=rnn_layers,
                                             rnn_type=rnn_type,
+                                            linear_base=linear_base,
                                             batch_length=config.batch_length,
                                             train_length=config.train_length,
                                             max_epoch=config.max_training_epoch,

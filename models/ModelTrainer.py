@@ -100,6 +100,7 @@ class ModelTrainer:
                          normalize_length,
                          rnn_layers,
                          rnn_type,
+                         linear_base,
                          batch_length,
                          train_length,
                          max_epoch,
@@ -111,7 +112,7 @@ class ModelTrainer:
         round = 0
         current_model_reward = -np.inf
         best_model_reward = -np.inf
-        model_path = '%s_%d%s' % (model_path, rnn_layers, rnn_type)
+        model_path = '%s_%d%s_%d' % (model_path, rnn_layers, rnn_type, linear_base)
         best_model_path = model_path + '_best'
         model = None
         while round < patient_rounds:
@@ -124,7 +125,8 @@ class ModelTrainer:
                               learning_rate=learning_rate,
                               rnn_layers=rnn_layers,
                               normalize_length=normalize_length,
-                              rnn_type=rnn_type)
+                              rnn_type=rnn_type,
+                              linear_base=linear_base)
             model.reset_model()
             for e in range(max_epoch):
                 train_reward, train_actions = model.train(asset_data, c=c, train_length=train_length, epoch=e)

@@ -12,25 +12,25 @@ print('Using device:', dev)
 print()
 
 class Actor(nn.Module):
-    def __init__(self, s_dim, b_dim, rnn_layers=1, dp=0.2, rnn_type='gru'):
+    def __init__(self, s_dim, b_dim, rnn_layers=1, dp=0.2, rnn_type='gru', linear_base=128):
         super(Actor, self).__init__()
         self.s_dim = s_dim
         self.b_dim = b_dim
         self.rnn_layers = rnn_layers
         if rnn_type == 'gru':
-            self.rnn = nn.GRU(self.s_dim, 128, self.rnn_layers, batch_first=True)
+            self.rnn = nn.GRU(self.s_dim, linear_base, self.rnn_layers, batch_first=True)
         elif rnn_type == 'lstm':
-            self.rnn = nn.LSTM(self.s_dim, 128, self.rnn_layers, batch_first=True)
-        self.fc_policy_1 = nn.Linear(128, 128)
-        self.fc_policy_2 = nn.Linear(128, 64)
-        self.fc_policy_out = nn.Linear(64, 1)
-        self.fc_cash_out = nn.Linear(64, 1)
+            self.rnn = nn.LSTM(self.s_dim, linear_base, self.rnn_layers, batch_first=True)
+        self.fc_policy_1 = nn.Linear(linear_base, linear_base)
+        self.fc_policy_2 = nn.Linear(linear_base, linear_base // 2)
+        self.fc_policy_out = nn.Linear(linear_base // 2, 1)
+        self.fc_cash_out = nn.Linear(linear_base // 2, 1)
         self.relu = nn.ReLU()
         self.tanh = nn.Tanh()
         self.dropout = nn.Dropout(p=dp)
         self.softmax = nn.Softmax()
         self.sigmoid = nn.Sigmoid()
-        self.initial_hidden = torch.zeros(self.rnn_layers, self.b_dim, 128, dtype=torch.float32).cuda()
+        self.initial_hidden = torch.zeros(self.rnn_layers, self.b_dim, linear_base, dtype=torch.float32).cuda()
     
     def forward(self, state, hidden=None, train=False):
         state, h = self.rnn(state, hidden)
@@ -47,7 +47,8 @@ class Actor(nn.Module):
 
 
 class DRL_Torch(Model):
-    def __init__(self, s_dim, b_dim, a_dim=1, batch_length=64, learning_rate=1e-3, rnn_layers=1, normalize_length=10, rnn_type='gru'):
+    def __init__(self, s_dim, b_dim, a_dim=1, batch_length=64, learning_rate=1e-3,
+                rnn_layers=1, normalize_length=10, rnn_type='gru', linear_base=128):
         self.s_dim = s_dim
         self.b_dim = b_dim
         self.batch_length = batch_length
@@ -58,7 +59,7 @@ class DRL_Torch(Model):
         
         self.train_hidden = None
         self.trade_hidden = None
-        self.actor = Actor(s_dim=self.s_dim, b_dim=self.b_dim, rnn_layers=rnn_layers)
+        self.actor = Actor(s_dim=self.s_dim, b_dim=self.b_dim, rnn_layers=rnn_layers, linear_base=linear_base)
         self.actor = self.actor.to(dev)
         self.optimizer = optim.Adam(self.actor.parameters(), lr=learning_rate)
         self.trainer = ModelTrainer(self)
