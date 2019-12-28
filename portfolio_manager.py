@@ -5,6 +5,7 @@ from trader import *
 from utils import config
 from sklearn.preprocessing import StandardScaler
 from models.ModelTrainer import *
+import importlib
 
 CONFIG_PATH = './config/config.json'
 if not os.path.exists(CONFIG_PATH):
@@ -95,13 +96,14 @@ class PortfolioManager(object):
             return
 
         params = [
-            (1, 'gru', 128),
-            (1, 'lstm', 128),
-            (2, 'gru', 128),
-            (2, 'lstm', 128)
+            ("DRL_Torch", 1, 'gru', 128),
+            ("DRL_Torch", 1, 'lstm', 128),
+            ("DRL_Torch", 2, 'gru', 128),
+            ("DRL_Torch", 2, 'lstm', 128)
         ]
-        for (rnn_layers, rnn_type, linear_base) in params:
-            ModelTrainer.create_new_model(ModelClass=config.agent,
+        for (model_type, rnn_layers, rnn_type, linear_base) in params:
+            agent = getattr(importlib.import_module("models.{0}".format(model_type)), model_type)
+            ModelTrainer.create_new_model(ModelClass=agent,
                                             asset_data=self.asset_data,
                                             c=config.fee,
                                             normalize_length=config.normalize_length,
@@ -218,5 +220,5 @@ if __name__ == '__main__':
         raise NotImplementedError()
     else:
         print('invalid command')
-        # Donate XMR:   4AUY1FEpfGtYutRShAsmTMbVFmLoZdL92Gg6fQPYsN1P61mqrZpgnmsQKtYM8CkFpvDMJS6MuuKmncHhSpUtRyEqGcNUht2
+        # Donate XMR:   46s5pd7bDir9dQYYH1N1g13Kb6HX9wyfDYJxFeSXHU619VBPpWH91xiPHWSimDXSanXhRZ6AyZvBv9TV69s3818DTftScBB
         # :)
