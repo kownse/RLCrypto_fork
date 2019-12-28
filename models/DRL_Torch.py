@@ -23,13 +23,10 @@ class Actor(nn.Module):
             self.rnn = nn.LSTM(self.s_dim, linear_base, self.rnn_layers, batch_first=True)
         self.fc_policy_1 = nn.Linear(linear_base, linear_base)
         self.fc_policy_2 = nn.Linear(linear_base, linear_base // 2)
-        self.fc_policy_out = nn.Linear(linear_base // 2, 1)
-        self.fc_cash_out = nn.Linear(linear_base // 2, 1)
+        self.fc_policy_out = nn.Linear(linear_base // 2, b_dim + 1)
         self.relu = nn.ReLU()
-        self.tanh = nn.Tanh()
         self.dropout = nn.Dropout(p=dp)
         self.softmax = nn.Softmax()
-        self.sigmoid = nn.Sigmoid()
         self.initial_hidden = torch.zeros(self.rnn_layers, self.b_dim, linear_base, dtype=torch.float32).cuda()
     
     def forward(self, state, hidden=None, train=False):
@@ -38,11 +35,7 @@ class Actor(nn.Module):
             state = self.dropout(state)
         state = self.relu(self.fc_policy_1(state))
         state = self.relu(self.fc_policy_2(state))
-        cash = self.sigmoid(self.fc_cash_out(state))
-        action = self.sigmoid(self.fc_policy_out(state)).squeeze(-1).transpose(0,1)
-        cash = cash.mean(dim=0)
-        action = torch.cat(((1 - cash) * action, cash), dim=-1).cuda()
-        action = action / (action.sum(dim=-1, keepdim=True) + 1e-10)
+        action = self.softmax(self.fc_policy_out(state).squeeze())
         return action, h.data
 
 
