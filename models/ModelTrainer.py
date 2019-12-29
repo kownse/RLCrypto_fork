@@ -106,13 +106,14 @@ class ModelTrainer:
                          max_epoch,
                          learning_rate,
                          model_path,
+                         drop=0.2,
                          patient=10,
                          patient_rounds=3):
         torch.cuda.empty_cache()
         round = 0
         current_model_reward = -np.inf
         best_model_reward = -np.inf
-        model_path = '%s_%d%s_%d' % (model_path, rnn_layers, rnn_type, linear_base)
+        model_path = '%s_%d%s_base%d_drop%.2f' % (model_path, rnn_layers, rnn_type, linear_base, drop)
         best_model_path = model_path + '_best'
         model = None
         while round < patient_rounds:
@@ -126,7 +127,8 @@ class ModelTrainer:
                               rnn_layers=rnn_layers,
                               normalize_length=normalize_length,
                               rnn_type=rnn_type,
-                              linear_base=linear_base)
+                              linear_base=linear_base,
+                              drop=drop)
             model.reset_model()
             for e in range(max_epoch):
                 train_reward, train_actions = model.train(asset_data, c=c, train_length=train_length, epoch=e)

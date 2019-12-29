@@ -69,7 +69,8 @@ class PortfolioManager(object):
                                   batch_length=config.batch_length,
                                   rnn_layers=config.rnn_layers,
                                   normalize_length=config.normalize_length,
-                                  rnn_type=config.rnn_type)
+                                  rnn_type=config.rnn_type,
+                                  drop=config.drop)
         self.agent.load_model(model_path=path)
     
     def build_model(self):
@@ -96,12 +97,14 @@ class PortfolioManager(object):
             return
 
         params = [
-            ("DRL_Torch", 1, 'gru', 128),
-            ("DRL_Torch", 1, 'lstm', 128),
-            ("DRL_Torch", 2, 'gru', 128),
-            ("DRL_Torch", 2, 'lstm', 128)
+            ("DRL_Torch", 1, 'lstm', 128, 0.2),
+            ("DRL_Torch", 1, 'gru', 128, 0.3),
+            ("DRL_Torch", 1, 'gru', 128, 0.4),
+            ("DRL_Torch", 1, 'lstm', 128, 0.3),
+            # ("DRL_Torch", 2, 'gru', 128),
+            # ("DRL_Torch", 2, 'lstm', 128)
         ]
-        for (model_type, rnn_layers, rnn_type, linear_base) in params:
+        for (model_type, rnn_layers, rnn_type, linear_base, drop) in params:
             agent = getattr(importlib.import_module("models.{0}".format(model_type)), model_type)
             ModelTrainer.create_new_model(ModelClass=agent,
                                             asset_data=self.asset_data,
@@ -115,6 +118,7 @@ class PortfolioManager(object):
                                             max_epoch=config.max_training_epoch,
                                             learning_rate=config.learning_rate,
                                             model_path=config.model_path,
+                                            drop=drop,
                                             patient=config.patient,
                                             patient_rounds=config.patient_rounds)
     

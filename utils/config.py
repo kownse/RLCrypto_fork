@@ -48,6 +48,7 @@ normalize_length = None
 rnn_layers = None
 rnn_type = None
 linear_base = None
+drop = None
 patient = None
 patient_rounds = None
 batch_length = None
@@ -90,6 +91,7 @@ def init_config(config_path):
         global rnn_layers
         global rnn_type
         global linear_base
+        global drop
         global patient
         global patient_rounds
         global batch_length
@@ -130,6 +132,7 @@ def init_config(config_path):
         rnn_layers = train_config['rnn_layers']
         rnn_type = train_config['rnn_type']
         linear_base = train_config['linear_base']
+        drop = train_config['drop']
         patient = train_config['patient']
         patient_rounds = train_config['patient_rounds']
         batch_length = train_config['batch_length']

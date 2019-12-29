@@ -17,6 +17,7 @@ class Actor(nn.Module):
         self.s_dim = s_dim
         self.b_dim = b_dim
         self.rnn_layers = rnn_layers
+        self.rnn_type = rnn_type
         if rnn_type == 'gru':
             self.rnn = nn.GRU(self.s_dim, linear_base, self.rnn_layers, batch_first=True)
         elif rnn_type == 'lstm':
@@ -33,15 +34,19 @@ class Actor(nn.Module):
         state, h = self.rnn(state, hidden)
         if train:
             state = self.dropout(state)
+
         state = self.relu(self.fc_policy_1(state))
         state = self.relu(self.fc_policy_2(state))
         action = self.softmax(self.fc_policy_out(state).squeeze())
-        return action, h.data
+        if self.rnn_type == 'gru':
+            return action, h.data
+        elif self.rnn_type == 'lstm':
+            return action, (h[0].data, h[1].data)
 
 
 class DRL_Torch(Model):
     def __init__(self, s_dim, b_dim, a_dim=1, batch_length=64, learning_rate=1e-3,
-                rnn_layers=1, normalize_length=10, rnn_type='gru', linear_base=128):
+                rnn_layers=1, normalize_length=10, rnn_type='gru', linear_base=128, drop=0.2):
         self.s_dim = s_dim
         self.b_dim = b_dim
         self.batch_length = batch_length
@@ -49,10 +54,11 @@ class DRL_Torch(Model):
         self.pointer = 0
         self.s_buffer = []
         self.d_buffer = []
+        self.rnn_type = rnn_type
         
         self.train_hidden = None
         self.trade_hidden = None
-        self.actor = Actor(s_dim=self.s_dim, b_dim=self.b_dim, rnn_layers=rnn_layers, linear_base=linear_base)
+        self.actor = Actor(s_dim=self.s_dim, b_dim=self.b_dim, rnn_layers=rnn_layers, dp=drop, rnn_type=rnn_type, linear_base=linear_base)
         self.actor = self.actor.to(dev)
         self.optimizer = optim.Adam(self.actor.parameters(), lr=learning_rate)
         self.trainer = ModelTrainer(self)
