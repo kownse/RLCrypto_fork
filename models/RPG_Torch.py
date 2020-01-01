@@ -12,27 +12,31 @@ print('Using device:', dev)
 print()
 
 class Actor(nn.Module):
-    def __init__(self, s_dim, a_dim, b_dim, rnn_layers=1, dp=0.2):
+    def __init__(self, s_dim, a_dim, b_dim, rnn_layers=1, dp=0.2, rnn_type='gru', linear_base=128):
         super(Actor, self).__init__()
         self.s_dim = s_dim
         self.a_dim = a_dim
         self.b_dim = b_dim
         self.rnn_layers = rnn_layers
-        self.gru = nn.GRU(self.s_dim, 128, self.rnn_layers, batch_first=True)
-        self.fc_s_1 = nn.Linear(128, 128)
-        self.fc_s_2 = nn.Linear(128, 64)
-        self.fc_s_out = nn.Linear(64, 1)
-        self.fc_pg_1 = nn.Linear(128, 128)
-        self.fc_pg_2 = nn.Linear(128, 64)
-        self.fc_pg_out = nn.Linear(64, self.a_dim)
+        self.rnn_type = rnn_type
+        if rnn_type == 'gru':
+            self.rnn = nn.GRU(self.s_dim, linear_base, self.rnn_layers, batch_first=True)
+        elif rnn_type == 'lstm':
+            self.rnn = nn.LSTM(self.s_dim, linear_base, self.rnn_layers, batch_first=True)
+        self.fc_s_1 = nn.Linear(linear_base, linear_base)
+        self.fc_s_2 = nn.Linear(linear_base, linear_base // 2)
+        self.fc_s_out = nn.Linear(linear_base // 2, 1)
+        self.fc_pg_1 = nn.Linear(linear_base, linear_base)
+        self.fc_pg_2 = nn.Linear(linear_base, linear_base // 2)
+        self.fc_pg_out = nn.Linear(linear_base // 2, self.a_dim)
         self.relu = nn.ReLU()
         self.tanh = nn.Tanh()
         self.dropout = nn.Dropout(p=dp)
         self.softmax = nn.Softmax(dim=-1)
-        self.initial_hidden = torch.zeros(self.rnn_layers, self.b_dim, 128, dtype=torch.float32).cuda()
+        self.initial_hidden = torch.zeros(self.rnn_layers, self.b_dim, linear_base, dtype=torch.float32).cuda()
     
     def forward(self, state, hidden=None, train=False):
-        state, h = self.gru(state, hidden)
+        state, h = self.rnn(state, hidden)
         if train:
             state = self.dropout(state)
         sn_out = self.relu(self.fc_s_1(state))
@@ -46,11 +50,14 @@ class Actor(nn.Module):
         if train:
             pn_out = self.dropout(pn_out)
         pn_out = self.softmax(self.fc_pg_out(pn_out))
-        return pn_out, sn_out, h.data
-
+        if self.rnn_type == 'gru':
+            return pn_out, sn_out, h.data
+        elif self.rnn_type == 'lstm':
+            return pn_out, sn_out, (h[0].data, h[1].data)
 
 class RPG_Torch(Model):
-    def __init__(self, s_dim, a_dim, b_dim, batch_length=64, learning_rate=1e-3, rnn_layers=1, normalize_length=10):
+    def __init__(self, s_dim, a_dim, b_dim, batch_length=64, learning_rate=1e-3,
+                rnn_layers=1, normalize_length=10, rnn_type='gru', linear_base=128, drop=0.2):
         self.s_dim = s_dim
         self.a_dim = a_dim
         self.b_dim = b_dim
@@ -64,7 +71,7 @@ class RPG_Torch(Model):
         
         self.train_hidden = None
         self.trade_hidden = None
-        self.actor = Actor(s_dim=self.s_dim, a_dim=self.a_dim, b_dim=self.b_dim, rnn_layers=rnn_layers)
+        self.actor = Actor(s_dim=self.s_dim, a_dim=self.a_dim, b_dim=self.b_dim, rnn_layers=rnn_layers, dp=drop, rnn_type=rnn_type, linear_base=linear_base)
         self.actor = self.actor.to(dev)
 
         self.optimizer = optim.Adam(self.actor.parameters(), lr=learning_rate)

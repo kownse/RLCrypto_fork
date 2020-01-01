@@ -97,10 +97,12 @@ class PortfolioManager(object):
             return
 
         params = [
-            ("DRL_Torch", 1, 'lstm', 128, 0.2),
-            ("DRL_Torch", 1, 'gru', 128, 0.3),
-            ("DRL_Torch", 1, 'gru', 128, 0.4),
-            ("DRL_Torch", 1, 'lstm', 128, 0.3),
+            # ("DRL_Torch", 1, 'lstm', 104, 0.2),
+            # ("DRL_Torch", 1, 'gru', 104, 0.2),
+            # ("DRL_Torch", 1, 'lstm', 96, 0.2),
+            # ("DRL_Torch", 1, 'gru', 96, 0.2),
+            ("RPG_Torch", 1, 'gru', 128, 0.2),
+            ("RPG_Torch", 1, 'lstm', 128, 0.2),
             # ("DRL_Torch", 2, 'gru', 128),
             # ("DRL_Torch", 2, 'lstm', 128)
         ]
@@ -117,7 +119,7 @@ class PortfolioManager(object):
                                             train_length=config.train_length,
                                             max_epoch=config.max_training_epoch,
                                             learning_rate=config.learning_rate,
-                                            model_path=config.model_path,
+                                            model_path=model_type,
                                             drop=drop,
                                             patient=config.patient,
                                             patient_rounds=config.patient_rounds)

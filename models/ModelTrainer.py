@@ -120,7 +120,7 @@ class ModelTrainer:
             round = round + 1
             unbreak_epoch = 0
             model = ModelClass(s_dim=asset_data.shape[2],
-                              a_dim=2,
+                              a_dim=asset_data.shape[0] + 1,
                               b_dim=asset_data.shape[0],
                               batch_length=batch_length,
                               learning_rate=learning_rate,
