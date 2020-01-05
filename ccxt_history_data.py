@@ -26,6 +26,8 @@ def download_history(exchange, symble, from_datetime, end_datetime, interval='1h
 
     if interval=='1h':
         delta = minute * 60
+    elif interval=='1d':
+        delta = minute * 60 * 24
     else:
         print("unsupported interval:" + interval)
         exit()
@@ -80,4 +82,4 @@ if __name__=='__main__':
     exchange.load_markets()
     usd_symbles = [symble for symble in exchange.symbols if symble[-3:] == 'USD']
     for symble in tqdm(usd_symbles):
-        download_history(exchange, symble, '2005-05-29 00:00:00', '2019-12-22 00:00:00', '1h')
+        download_history(exchange, symble, '2005-05-29 00:00:00', '2019-12-22 00:00:00', '1d')

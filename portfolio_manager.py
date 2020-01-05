@@ -36,6 +36,10 @@ class PortfolioManager(object):
         if len(self.portfolio) == 0:
             print('Load portfolio first')
             return
+
+        self.data_mode = mode
+        self.data_interval = config.tick_interval
+
         if mode == "huobi":
             self.original_data = klines(self.portfolio, base_currency=config.base_currency, interval=config.tick_interval, count=bar_count)
         elif mode == "local":
@@ -97,10 +101,14 @@ class PortfolioManager(object):
             return
 
         params = [
-            # ("DRL_Torch", 1, 'lstm', 104, 0.2),
-            # ("DRL_Torch", 1, 'gru', 104, 0.2),
-            # ("DRL_Torch", 1, 'lstm', 96, 0.2),
-            # ("DRL_Torch", 1, 'gru', 96, 0.2),
+            ("DRL_Torch", 1, 'gru', 128, 0.2),
+            ("DRL_Torch", 1, 'gru', 194, 0.2),
+            ("DRL_Torch", 2, 'gru', 128, 0.2),
+            ("DRL_Torch", 1, 'gru', 128, 0.3),
+            ("DRL_Torch", 1, 'lstm', 104, 0.2),
+            ("DRL_Torch", 1, 'gru', 104, 0.2),
+            ("DRL_Torch", 1, 'lstm', 96, 0.2),
+            ("DRL_Torch", 1, 'gru', 96, 0.2),
             ("RPG_Torch", 1, 'gru', 128, 0.2),
             ("RPG_Torch", 1, 'lstm', 128, 0.2),
             # ("DRL_Torch", 2, 'gru', 128),
@@ -122,7 +130,8 @@ class PortfolioManager(object):
                                             model_path=model_type,
                                             drop=drop,
                                             patient=config.patient,
-                                            patient_rounds=config.patient_rounds)
+                                            patient_rounds=config.patient_rounds,
+                                            data_interval=self.data_interval)
     
     def back_test(self):
         if len(self.portfolio) == 0:

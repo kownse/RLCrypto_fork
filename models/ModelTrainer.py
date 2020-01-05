@@ -108,12 +108,13 @@ class ModelTrainer:
                          model_path,
                          drop=0.2,
                          patient=10,
-                         patient_rounds=3):
+                         patient_rounds=3,
+                         data_interval='1h'):
         torch.cuda.empty_cache()
         round = 0
         current_model_reward = -np.inf
         best_model_reward = -np.inf
-        model_path = '%s_%d%s_base%d_drop%.2f' % (model_path, rnn_layers, rnn_type, linear_base, drop)
+        model_path = 'models_train/%s_%s_%d%s_base%d_drop%.2f' % (model_path, data_interval, rnn_layers, rnn_type, linear_base, drop)
         best_model_path = model_path + '_best'
         model = None
         while round < patient_rounds:
