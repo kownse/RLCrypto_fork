@@ -228,8 +228,8 @@ if __name__ == '__main__':
         portfolio_manager.init_data(config.train_bar_count, config.data_mode)
         portfolio_manager.build_model_batch()
     elif command == 'backtest':
-        portfolio_manager.init_data(config.train_bar_count)
-        portfolio_manager.load_model()
+        portfolio_manager.init_data(config.train_bar_count, config.data_mode)
+        portfolio_manager.load_model('model_backup/best/DRL_Torch_1gru_128_best_0.98')
         portfolio_manager.back_test()
     elif command == 'security_selection':
         raise NotImplementedError()

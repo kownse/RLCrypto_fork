@@ -17,7 +17,6 @@ class Actor(nn.Module):
         self.s_dim = s_dim
         self.b_dim = b_dim
         self.rnn_layers = rnn_layers
-        self.rnn_type = rnn_type
         if rnn_type == 'gru':
             self.rnn = nn.GRU(self.s_dim, linear_base, self.rnn_layers, batch_first=True)
         elif rnn_type == 'lstm':
@@ -38,9 +37,9 @@ class Actor(nn.Module):
         state = self.relu(self.fc_policy_1(state))
         state = self.relu(self.fc_policy_2(state))
         action = self.softmax(self.fc_policy_out(state).squeeze())
-        if self.rnn_type == 'gru':
+        if isinstance(self.rnn, nn.GRU):
             return action, h.data
-        elif self.rnn_type == 'lstm':
+        elif isinstance(self.rnn, nn.LSTM):
             return action, (h[0].data, h[1].data)
 
 
