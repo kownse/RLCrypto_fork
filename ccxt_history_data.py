@@ -8,8 +8,8 @@ import pandas as pd
 from tqdm import tqdm
 import ccxt  # noqa: E402
 
-def download_history(exchange, symble, from_datetime, end_datetime, interval='1h'):
-    data_path = "data/{0}".format(interval)
+def download_history(exchange, symble, from_datetime, end_datetime, interval='1h', basecoin = 'USD'):
+    data_path = "data/{0}_{1}".format(basecoin, interval)
     if not path.exists(data_path):
         try:
             os.makedirs(data_path)
@@ -74,12 +74,13 @@ if __name__=='__main__':
     minute = 60 * msec
     hold = 15
     max_retry = 5
+    basecoin = 'USDT'
 
     exchange = ccxt.bitfinex({
         'rateLimit': 10000,
         'enableRateLimit': True,
     })
     exchange.load_markets()
-    usd_symbles = [symble for symble in exchange.symbols if symble[-3:] == 'USD']
+    usd_symbles = [symble for symble in exchange.symbols if symble[-len(basecoin):] == basecoin]
     for symble in tqdm(usd_symbles):
-        download_history(exchange, symble, '2005-05-29 00:00:00', '2019-12-22 00:00:00', '1d')
+        download_history(exchange, symble, '2005-05-29 00:00:00', '2019-12-22 00:00:00', '1d', basecoin)

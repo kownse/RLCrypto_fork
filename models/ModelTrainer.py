@@ -45,6 +45,7 @@ class ModelTrainer:
 
             action = self.owner._trade(state, train=True)
             action_np = action.cpu().numpy().flatten()
+            action_np = np.round(action_np, decimals=1)
             r = asset_data[:, :, 'diff'].iloc[t].values * action_np[:-1] - c * np.abs(previous_action - action_np[:-1])
             self.owner.save_transition(state=state, reward=asset_data[:, :, 'diff'].iloc[t].values)
             train_reward.append(r)
@@ -56,7 +57,7 @@ class ModelTrainer:
         print(epoch, 'train_reward', np.sum(np.sum(train_reward, axis=1)), np.mean(train_reward))
         return train_reward, train_actions
 
-    def back_test(self, asset_data, c, test_length, epoch=0):
+    def back_test(self, asset_data, fee, test_length, epoch=0):
         self.owner.reset_model()
         previous_action = np.zeros(asset_data.shape[0])
         test_reward = []
@@ -67,7 +68,9 @@ class ModelTrainer:
 
             action = self.owner._trade(state=state, train=False)
             action_np = action.cpu().numpy().flatten()
-            r = asset_data[:, :, 'diff'].iloc[t].values * action_np[:-1] - c * np.abs(previous_action - action_np[:-1])
+            action_np = np.round(action_np, decimals=1)
+            r = asset_data[:, :, 'diff'].iloc[t].values * action_np[:-1] - fee * np.abs(previous_action - action_np[:-1])
+            print(action_np, r)
             test_reward.append(r)
             test_actions.append(action_np)
             previous_action = action_np[:-1]
