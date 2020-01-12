@@ -5,6 +5,7 @@ import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import numpy as np
 import os
+import importlib
 
 class ModelTrainer:
     def __init__(self, owner):
@@ -97,7 +98,7 @@ class ModelTrainer:
         return action_np
 
     @staticmethod
-    def create_new_model(ModelClass,
+    def create_new_model(model_type,
                          asset_data,
                          c,
                          normalize_length,
@@ -113,6 +114,7 @@ class ModelTrainer:
                          patient=10,
                          patient_rounds=3,
                          data_interval='1h'):
+        ModelClass = getattr(importlib.import_module("models.{0}".format(model_type)), model_type)
         torch.cuda.empty_cache()
         round = 0
         current_model_reward = -np.inf
@@ -152,8 +154,6 @@ class ModelTrainer:
                     if unbreak_epoch >patient:
                         print("No more patient")
                         break
-
-                break
         print('model created successfully, backtest reward:', current_model_reward)
         model.save_model(model_path)
         return model
