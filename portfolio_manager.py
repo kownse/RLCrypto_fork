@@ -6,6 +6,13 @@ from utils import config
 from sklearn.preprocessing import StandardScaler
 from models.ModelTrainer import *
 import importlib
+import torch.multiprocessing as mp
+
+from multiprocessing import set_start_method
+try:
+    set_start_method('spawn')
+except RuntimeError:
+    pass
 
 import time
 start_time = time.time()
@@ -101,31 +108,56 @@ class PortfolioManager(object):
 
         params = [
             ("DRL_Torch", 1, 'gru', 128, 0.2, 24),
-            ("DRL_Torch", 1, 'gru', 128, 0.2, 48),
+            # ("DRL_Torch", 1, 'gru', 128, 0.2, 48),
             ("DRL_Torch", 1, 'gru', 128, 0.2, 96),
             ("DRL_Torch", 1, 'gru', 128, 0.2, 192),
             ("DRL_Torch", 1, 'gru', 128, 0.2, 384),
             ("DRL_Torch", 1, 'gru', 128, 0.2, 768),
-            ("DRL_Torch", 1, 'gru', 128, 0.2, 1536),
+            # ("DRL_Torch", 1, 'gru', 128, 0.2, 1536),
             ("DRL_Torch", 1, 'gru', 128, 0.2, 3072),
         ]
+
+        processes = []
+
         for (model_type, rnn_layers, rnn_type, linear_base, drop, normalize_length) in params:
-            ModelTrainer.create_new_model(model_type=model_type,
-                                            asset_data=self.asset_data,
-                                            c=config.fee,
-                                            normalize_length=normalize_length,
-                                            rnn_layers=rnn_layers,
-                                            rnn_type=rnn_type,
-                                            linear_base=linear_base,
-                                            batch_length=config.batch_length,
-                                            train_length=config.train_length,
-                                            max_epoch=config.max_training_epoch,
-                                            learning_rate=config.learning_rate,
-                                            model_path=model_type,
-                                            drop=drop,
-                                            patient=config.patient,
-                                            patient_rounds=config.patient_rounds,
-                                            data_interval=self.data_interval)
+            # ModelTrainer.create_new_model(model_type=model_type,
+            #                                 asset_data=self.asset_data,
+            #                                 c=config.fee,
+            #                                 normalize_length=normalize_length,
+            #                                 rnn_layers=rnn_layers,
+            #                                 rnn_type=rnn_type,
+            #                                 linear_base=linear_base,
+            #                                 batch_length=config.batch_length,
+            #                                 train_length=config.train_length,
+            #                                 max_epoch=config.max_training_epoch,
+            #                                 learning_rate=config.learning_rate,
+            #                                 model_path=model_type,
+            #                                 drop=drop,
+            #                                 patient=config.patient,
+            #                                 patient_rounds=config.patient_rounds,
+            #                                 data_interval=self.data_interval)
+
+            p = mp.Process(target=ModelTrainer.create_new_model, args=(model_type, 
+                                                                    self.asset_data,
+                                                                    config.fee,
+                                                                    normalize_length,
+                                                                    rnn_layers,
+                                                                    rnn_type,
+                                                                    linear_base,
+                                                                    config.batch_length,
+                                                                    config.train_length,
+                                                                    config.max_training_epoch,
+                                                                    config.learning_rate,
+                                                                    model_type,
+                                                                    drop,
+                                                                    config.patient,
+                                                                    config.patient_rounds,
+                                                                    self.data_interval))
+            p.start()
+            processes.append(p)
+
+        for p in processes:
+            p.join()
     
     def back_test(self):
         if len(self.portfolio) == 0:
