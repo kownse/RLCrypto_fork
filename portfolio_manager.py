@@ -98,13 +98,13 @@ class PortfolioManager(object):
 
         params = [
             ("DRL_Torch", 1, 'gru', 128, 0.2, 24),
-            ("DRL_Torch", 1, 'gru', 128, 0.2, 48),
-            ("DRL_Torch", 1, 'gru', 128, 0.2, 96),
-            ("DRL_Torch", 1, 'gru', 128, 0.2, 192),
-            ("DRL_Torch", 1, 'gru', 128, 0.2, 384),
-            ("DRL_Torch", 1, 'gru', 128, 0.2, 768),
-            ("DRL_Torch", 1, 'gru', 128, 0.2, 1536),
-            ("DRL_Torch", 1, 'gru', 128, 0.2, 3072),
+            # ("DRL_Torch", 1, 'gru', 128, 0.2, 48),
+            # ("DRL_Torch", 1, 'gru', 128, 0.2, 96),
+            # ("DRL_Torch", 1, 'gru', 128, 0.2, 192),
+            # ("DRL_Torch", 1, 'gru', 128, 0.2, 384),
+            # ("DRL_Torch", 1, 'gru', 128, 0.2, 768),
+            # ("DRL_Torch", 1, 'gru', 128, 0.2, 1536),
+            # ("DRL_Torch", 1, 'gru', 128, 0.2, 3072),
         ]
         for (model_type, rnn_layers, rnn_type, linear_base, drop, normalize_length) in params:
             agent = getattr(importlib.import_module("models.{0}".format(model_type)), model_type)

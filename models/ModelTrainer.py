@@ -2,6 +2,7 @@ from models.Model import *
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 import numpy as np
 import os
 
@@ -133,10 +134,14 @@ class ModelTrainer:
                               linear_base=linear_base,
                               drop=drop)
             model.reset_model()
+            lr_scheduler = ReduceLROnPlateau(model.optimizer, mode='max', factor=0.5, patience=6, verbose=True)
+
             for e in range(max_epoch):
                 train_reward, train_actions = model.train(asset_data, c=c, train_length=train_length, epoch=e)
                 test_reward, test_actions = model.back_test(asset_data, c=c, test_length=asset_data.shape[1] - train_length)
                 current_model_reward = np.sum(np.sum(test_reward, axis=1))
+                lr_scheduler.step(current_model_reward)
+
                 if current_model_reward > best_model_reward:
                     best_model_reward = current_model_reward
                     model.save_model('%s_%.2f' % (best_model_path, current_model_reward))
@@ -147,6 +152,8 @@ class ModelTrainer:
                     if unbreak_epoch >patient:
                         print("No more patient")
                         break
+
+                break
         print('model created successfully, backtest reward:', current_model_reward)
         model.save_model(model_path)
         return model
