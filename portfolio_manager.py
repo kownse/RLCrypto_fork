@@ -7,6 +7,9 @@ from sklearn.preprocessing import StandardScaler
 from models.ModelTrainer import *
 import importlib
 
+import time
+start_time = time.time()
+
 CONFIG_PATH = './config/config.json'
 if not os.path.exists(CONFIG_PATH):
     print("config file doesn't exist")
@@ -229,3 +232,5 @@ if __name__ == '__main__':
         print('invalid command')
         # Donate XMR:   46s5pd7bDir9dQYYH1N1g13Kb6HX9wyfDYJxFeSXHU619VBPpWH91xiPHWSimDXSanXhRZ6AyZvBv9TV69s3818DTftScBB
         # :)
+
+    print("--- %s seconds ---" % (time.time() - start_time))
