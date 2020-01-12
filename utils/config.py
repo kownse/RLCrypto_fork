@@ -45,6 +45,7 @@ max_asset_percent = None
 max_order_waiting_time = None
 fee = None
 normalize_length = None
+begin_date = None
 rnn_layers = None
 rnn_type = None
 linear_base = None
@@ -88,6 +89,7 @@ def init_config(config_path):
         global max_order_waiting_time
         global fee
         global normalize_length
+        global begin_date
         global rnn_layers
         global rnn_type
         global linear_base
@@ -129,6 +131,8 @@ def init_config(config_path):
         
         fee = train_config['fee']
         normalize_length = train_config['normalize_length']
+        if 'begin_date' in train_config:
+            begin_date = train_config['begin_date']
         rnn_layers = train_config['rnn_layers']
         rnn_type = train_config['rnn_type']
         linear_base = train_config['linear_base']

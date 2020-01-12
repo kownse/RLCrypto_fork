@@ -43,13 +43,9 @@ class PortfolioManager(object):
         if mode == "huobi":
             self.original_data = klines(self.portfolio, base_currency=config.base_currency, interval=config.tick_interval, count=bar_count)
         elif mode == "local":
-            self.original_data = klines_local(self.portfolio, interval=config.tick_interval)
+            self.original_data = klines_local(self.portfolio, interval=config.tick_interval, begin_date=config.begin_date)
 
         self.asset_data = default_pre_process(self.original_data).fillna(0)
-        # Apply global standard scaler
-        # for idx in range(self.asset_data.shape[0]):
-        #     scaler = StandardScaler()
-        #     self.asset_data.iloc[idx] = scaler.fit_transform(self.asset_data.iloc[idx])
     
     def init_trader(self):
         self.trader = Trader(assets=self.portfolio,
@@ -101,25 +97,21 @@ class PortfolioManager(object):
             return
 
         params = [
-            ("DRL_Torch", 1, 'gru', 128, 0.2),
-            ("DRL_Torch", 1, 'gru', 194, 0.2),
-            ("DRL_Torch", 2, 'gru', 128, 0.2),
-            ("DRL_Torch", 1, 'gru', 128, 0.3),
-            ("DRL_Torch", 1, 'lstm', 104, 0.2),
-            ("DRL_Torch", 1, 'gru', 104, 0.2),
-            ("DRL_Torch", 1, 'lstm', 96, 0.2),
-            ("DRL_Torch", 1, 'gru', 96, 0.2),
-            ("RPG_Torch", 1, 'gru', 128, 0.2),
-            ("RPG_Torch", 1, 'lstm', 128, 0.2),
-            # ("DRL_Torch", 2, 'gru', 128),
-            # ("DRL_Torch", 2, 'lstm', 128)
+            ("DRL_Torch", 1, 'gru', 128, 0.2, 24),
+            ("DRL_Torch", 1, 'gru', 128, 0.2, 48),
+            ("DRL_Torch", 1, 'gru', 128, 0.2, 96),
+            ("DRL_Torch", 1, 'gru', 128, 0.2, 192),
+            ("DRL_Torch", 1, 'gru', 128, 0.2, 384),
+            ("DRL_Torch", 1, 'gru', 128, 0.2, 768),
+            ("DRL_Torch", 1, 'gru', 128, 0.2, 1536),
+            ("DRL_Torch", 1, 'gru', 128, 0.2, 3072),
         ]
-        for (model_type, rnn_layers, rnn_type, linear_base, drop) in params:
+        for (model_type, rnn_layers, rnn_type, linear_base, drop, normalize_length) in params:
             agent = getattr(importlib.import_module("models.{0}".format(model_type)), model_type)
             ModelTrainer.create_new_model(ModelClass=agent,
                                             asset_data=self.asset_data,
                                             c=config.fee,
-                                            normalize_length=config.normalize_length,
+                                            normalize_length=normalize_length,
                                             rnn_layers=rnn_layers,
                                             rnn_type=rnn_type,
                                             linear_base=linear_base,

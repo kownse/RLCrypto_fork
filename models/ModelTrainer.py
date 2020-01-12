@@ -70,7 +70,6 @@ class ModelTrainer:
             action_np = action.cpu().numpy().flatten()
             action_np = np.round(action_np, decimals=1)
             r = asset_data[:, :, 'diff'].iloc[t].values * action_np[:-1] - fee * np.abs(previous_action - action_np[:-1])
-            print(action_np, r)
             test_reward.append(r)
             test_actions.append(action_np)
             previous_action = action_np[:-1]
@@ -117,7 +116,7 @@ class ModelTrainer:
         round = 0
         current_model_reward = -np.inf
         best_model_reward = -np.inf
-        model_path = 'models_train/%s_%s_%d%s_base%d_drop%.2f' % (model_path, data_interval, rnn_layers, rnn_type, linear_base, drop)
+        model_path = 'models_train/%s_%s_%d%s_base%d_drop%.2f_normlen%d' % (model_path, data_interval, rnn_layers, rnn_type, linear_base, drop, normalize_length)
         best_model_path = model_path + '_best'
         model = None
         while round < patient_rounds:

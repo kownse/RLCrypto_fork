@@ -29,13 +29,18 @@ def kline(asset, base_currency='btc', interval='60min', count=2000):
 def klines(assets, base_currency='btc', interval='60min', count=2000):
     return lfilter(lambda x: x[1] is not None, lmap(lambda x: (x, kline(x, base_currency=base_currency, interval=interval, count=count)), assets))
 
-def kline_local(asset, interval='1h'):
+def kline_local(asset, interval='1h', begin=None):
     s = pd.read_csv(asset)
     s.timestamp = s.timestamp.apply(lambda x: (int)(x / 1000))
+    if begin is not None:
+        from datetime import datetime
+        begin_timestamp = datetime.timestamp(datetime.strptime(begin, "%Y-%m-%d"))
+        print('begin timestamp', begin_timestamp)
+        s = s.loc[s.timestamp > begin_timestamp]
     return basic_process(s, 'timestamp')
 
-def klines_local(assets, interval='1h'):
-    return lfilter(lambda x: x[1] is not None, lmap(lambda x: (x, kline_local(x, interval=interval)), assets))
+def klines_local(assets, interval='1h', begin_date=None):
+    return lfilter(lambda x: x[1] is not None, lmap(lambda x: (x, kline_local(x, interval=interval, begin=begin_date)), assets))
 
 def re_balance(target_percent,
                symbol,
