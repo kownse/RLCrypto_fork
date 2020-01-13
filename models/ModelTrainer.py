@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 import os
 import importlib
@@ -42,8 +43,9 @@ class ModelTrainer:
         previous_action = np.zeros(asset_data.shape[0])
         train_reward = []
         train_actions = []
-        for t in range(self.owner.normalize_length, train_length):
-            state = self.check_cache_get_state(asset_data, t, self.owner.normalize_length, self.all_train_states)
+        for t in range(0, train_length - self.owner.normalize_length):
+            dataidx = t + self.owner.normalize_length
+            state = self.check_cache_get_state(asset_data, dataidx, self.owner.normalize_length, self.all_train_states)
 
             action = self.owner._trade(state, train=True)
             action_np = action.cpu().numpy().flatten()
@@ -53,7 +55,7 @@ class ModelTrainer:
             train_reward.append(r)
             train_actions.append(action_np)
             previous_action = action_np[:-1]
-            if t % self.owner.batch_length == 0:
+            if t > 0 and t % self.owner.batch_length == 0:
                 self.owner._train()
         self.owner.reset_model()
         print(epoch, 'train_reward', np.sum(np.sum(train_reward, axis=1)), np.mean(train_reward))
@@ -119,7 +121,8 @@ class ModelTrainer:
         round = 0
         current_model_reward = -np.inf
         best_model_reward = -np.inf
-        model_path = 'models_train/%s_%s_%d%s_base%d_drop%.2f_normlen%d' % (model_path, data_interval, rnn_layers, rnn_type, linear_base, drop, normalize_length)
+        tag = '%s_%s_%d%s_base%d_drop%.2f_normlen%d' % (model_path, data_interval, rnn_layers, rnn_type, linear_base, drop, normalize_length)
+        model_path = 'models_train/%s' % (tag)
         best_model_path = model_path + '_best'
         model = None
         while round < patient_rounds:
@@ -136,13 +139,19 @@ class ModelTrainer:
                               linear_base=linear_base,
                               drop=drop)
             model.reset_model()
-            lr_scheduler = ReduceLROnPlateau(model.optimizer, mode='max', factor=0.5, patience=6, verbose=True)
-
+            #lr_scheduler = ReduceLROnPlateau(model.optimizer, mode='max', factor=0.5, patience=6, verbose=True)
+            writer = SummaryWriter(comment=tag)
+            
             for e in range(max_epoch):
                 train_reward, train_actions = model.train(asset_data, c=c, train_length=train_length, epoch=e)
                 test_reward, test_actions = model.back_test(asset_data, c=c, test_length=asset_data.shape[1] - train_length)
                 current_model_reward = np.sum(np.sum(test_reward, axis=1))
-                lr_scheduler.step(current_model_reward)
+                #lr_scheduler.step(current_model_reward)
+
+                writer.add_scalar('reward/train/sum', np.sum(np.sum(train_reward, axis=1)), e)
+                writer.add_scalar('reward/train/mean', np.mean(train_reward), e)
+                writer.add_scalar('reward/test/sum', current_model_reward, e)
+                writer.add_scalar('reward/test/mean', np.mean(test_reward), e)
 
                 if current_model_reward > best_model_reward:
                     best_model_reward = current_model_reward

@@ -107,13 +107,14 @@ class PortfolioManager(object):
             return
 
         params = [
-            ("DRL_Torch", 1, 'gru', 128, 0.2, 24),
+            # ("DRL_Torch", 1, 'gru', 128, 0.2, 24),
             # ("DRL_Torch", 1, 'gru', 128, 0.2, 48),
-            ("DRL_Torch", 1, 'gru', 128, 0.2, 96),
-            ("DRL_Torch", 1, 'gru', 128, 0.2, 192),
-            ("DRL_Torch", 1, 'gru', 128, 0.2, 384),
+            # ("DRL_Torch", 1, 'gru', 128, 0.2, 96),
+            # ("DRL_Torch", 1, 'gru', 128, 0.2, 192),
+            # ("DRL_Torch", 1, 'gru', 128, 0.2, 384),
             ("DRL_Torch", 1, 'gru', 128, 0.2, 768),
-            # ("DRL_Torch", 1, 'gru', 128, 0.2, 1536),
+            ("DRL_Torch", 1, 'gru', 128, 0.2, 1536),
+            ("DRL_Torch", 1, 'gru', 128, 0.2, 2304),
             ("DRL_Torch", 1, 'gru', 128, 0.2, 3072),
         ]
 
