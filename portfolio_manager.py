@@ -31,6 +31,7 @@ class PortfolioManager(object):
     def __init__(self):
         self.portfolio = []
         self.asset_data = None
+        self.all_asset_data = {}
         self.agent = None
         self.trader = None
     
@@ -42,20 +43,27 @@ class PortfolioManager(object):
             print('Load portfolio successfully')
             self.portfolio = json.loads(f.read())
     
-    def init_data(self, bar_count, mode="huobi"):
-        if len(self.portfolio) == 0:
+    def init_data(self, portfolio, bar_count, mode="huobi", data_interval=config.tick_interval):
+        if len(portfolio) == 0:
             print('Load portfolio first')
             return
 
         self.data_mode = mode
-        self.data_interval = config.tick_interval
+        self.data_interval = data_interval
 
         if mode == "huobi":
-            self.original_data = klines(self.portfolio, base_currency=config.base_currency, interval=config.tick_interval, count=bar_count)
+            original_data = klines(portfolio, base_currency=config.base_currency, interval=data_interval, count=bar_count)
         elif mode == "local":
-            self.original_data = klines_local(self.portfolio, interval=config.tick_interval, begin_date=config.begin_date)
+            original_data = klines_local(portfolio, interval=data_interval, begin_date=config.begin_date)
 
-        self.asset_data = default_pre_process(self.original_data).fillna(0)
+        self.asset_data = default_pre_process(original_data).fillna(0)
+        return self.asset_data
+
+    def check_init_data(self, portfolio, bar_count, mode="local", tick_interval=config.tick_interval):
+        if tick_interval in self.all_asset_data:
+            return
+        print('load data for', portfolio)
+        self.all_asset_data[tick_interval] = self.init_data(portfolio, bar_count, mode, tick_interval)
     
     def init_trader(self):
         self.trader = Trader(assets=self.portfolio,
@@ -72,6 +80,7 @@ class PortfolioManager(object):
         if len(self.portfolio) == 0 or self.asset_data is None:
             print('Init data first')
             return
+
         self.agent = config.agent(s_dim=self.asset_data.shape[-1],
                                   b_dim=self.asset_data.shape[0],
                                   a_dim=2,
@@ -87,7 +96,7 @@ class PortfolioManager(object):
         if len(self.portfolio) == 0 or self.asset_data is None:
             print('Init data first')
             return
-        self.agent = ModelTrainer.create_new_model(ModelClass=config.agent,
+        self.agent = ModelTrainer.create_new_model(model_type=config.agent,
                                             asset_data=self.asset_data,
                                             c=config.fee,
                                             normalize_length=config.normalize_length,
@@ -102,58 +111,53 @@ class PortfolioManager(object):
                                             patient_rounds=config.patient_rounds)
 
     def build_model_batch(self):
-        if len(self.portfolio) == 0 or self.asset_data is None:
-            print('Init data first')
-            return
-
         params = [
-            # ("DRL_Torch", 1, 'gru', 128, 0.2, 24),
-            # ("DRL_Torch", 1, 'gru', 128, 0.2, 48),
-            # ("DRL_Torch", 1, 'gru', 128, 0.2, 96),
-            # ("DRL_Torch", 1, 'gru', 128, 0.2, 192),
-            # ("DRL_Torch", 1, 'gru', 128, 0.2, 384),
-            ("DRL_Torch", 1, 'gru', 128, 0.2, 768),
-            ("DRL_Torch", 1, 'gru', 128, 0.2, 1536),
-            ("DRL_Torch", 1, 'gru', 128, 0.2, 2304),
-            ("DRL_Torch", 1, 'gru', 128, 0.2, 3072),
+            # ("DRL_Torch", 1, 'gru', 128, 0.2, 720, '1h', 55400, ["data/1h/BTC-USD_2013-03-31.csv"]),
+            ("DRL_Torch", 1, 'gru', 128, 0.2, 720, '30m', 110000, ["data/USD_30m/BTC-USD_2013-03-31.csv"]),
+            ("DRL_Torch", 1, 'gru', 128, 0.2, 720 * 2, '30m', 110000, ["data/USD_30m/BTC-USD_2013-03-31.csv"]),
+            ("DRL_Torch", 1, 'gru', 128 * 2, 0.2, 720 * 2, '30m', 110000, ["data/USD_30m/BTC-USD_2013-03-31.csv"]),
+            # ("DRL_Torch", 1, 'gru', 128, 0.2, 768),
+            # ("DRL_Torch", 1, 'lstm', 128, 0.2, 720),
+            # ("DRL_Torch", 2, 'lstm', 128, 0.2, 1536),
         ]
 
         processes = []
 
-        for (model_type, rnn_layers, rnn_type, linear_base, drop, normalize_length) in params:
+        for (model_type, rnn_layers, rnn_type, linear_base, drop, normalize_length, interval, train_length, portfolio) in params:
+            self.check_init_data(portfolio, config.train_bar_count, mode='local', tick_interval=interval)
             # ModelTrainer.create_new_model(model_type=model_type,
-            #                                 asset_data=self.asset_data,
+            #                                 asset_data=self.all_asset_data[interval],
             #                                 c=config.fee,
             #                                 normalize_length=normalize_length,
             #                                 rnn_layers=rnn_layers,
             #                                 rnn_type=rnn_type,
             #                                 linear_base=linear_base,
             #                                 batch_length=config.batch_length,
-            #                                 train_length=config.train_length,
+            #                                 train_length=train_length,
             #                                 max_epoch=config.max_training_epoch,
             #                                 learning_rate=config.learning_rate,
             #                                 model_path=model_type,
             #                                 drop=drop,
             #                                 patient=config.patient,
             #                                 patient_rounds=config.patient_rounds,
-            #                                 data_interval=self.data_interval)
+            #                                 data_interval=interval)
 
             p = mp.Process(target=ModelTrainer.create_new_model, args=(model_type, 
-                                                                    self.asset_data,
+                                                                    self.all_asset_data[interval],
                                                                     config.fee,
                                                                     normalize_length,
                                                                     rnn_layers,
                                                                     rnn_type,
                                                                     linear_base,
                                                                     config.batch_length,
-                                                                    config.train_length,
+                                                                    train_length,
                                                                     config.max_training_epoch,
                                                                     config.learning_rate,
                                                                     model_type,
                                                                     drop,
                                                                     config.patient,
                                                                     config.patient_rounds,
-                                                                    self.data_interval))
+                                                                    interval))
             p.start()
             processes.append(p)
 
@@ -252,7 +256,6 @@ if __name__ == '__main__':
         portfolio_manager.init_data(config.train_bar_count, config.data_mode)
         portfolio_manager.build_model()
     elif command == 'build_model_batch':
-        portfolio_manager.init_data(config.train_bar_count, config.data_mode)
         portfolio_manager.build_model_batch()
     elif command == 'backtest':
         portfolio_manager.init_data(config.train_bar_count, config.data_mode)

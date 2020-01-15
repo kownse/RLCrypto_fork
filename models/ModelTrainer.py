@@ -43,9 +43,10 @@ class ModelTrainer:
         previous_action = np.zeros(asset_data.shape[0])
         train_reward = []
         train_actions = []
-        for t in range(0, train_length - self.owner.normalize_length):
-            dataidx = t + self.owner.normalize_length
-            state = self.check_cache_get_state(asset_data, dataidx, self.owner.normalize_length, self.all_train_states)
+        idx = 0
+        print('start', self.owner.normalize_length, 'end', train_length)
+        for t in range(self.owner.normalize_length, train_length):
+            state = self.check_cache_get_state(asset_data, t, self.owner.normalize_length, self.all_train_states)
 
             action = self.owner._trade(state, train=True)
             action_np = action.cpu().numpy().flatten()
@@ -55,7 +56,9 @@ class ModelTrainer:
             train_reward.append(r)
             train_actions.append(action_np)
             previous_action = action_np[:-1]
-            if t > 0 and t % self.owner.batch_length == 0:
+            idx = idx + 1
+            if idx % self.owner.batch_length == 0:
+                idx = 0
                 self.owner._train()
         self.owner.reset_model()
         print(epoch, 'train_reward', np.sum(np.sum(train_reward, axis=1)), np.mean(train_reward))
@@ -67,6 +70,7 @@ class ModelTrainer:
         test_reward = []
         test_actions = []
         start = asset_data.shape[1] - test_length
+        print('start', start, 'end', asset_data.shape[1])
         for t in range(start, asset_data.shape[1]):
             state = self.check_cache_get_state(asset_data, t, start, self.all_test_states)
 
