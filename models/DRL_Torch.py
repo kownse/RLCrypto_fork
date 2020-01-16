@@ -45,7 +45,7 @@ class Actor(nn.Module):
 
 class DRL_Torch(Model):
     def __init__(self, s_dim, a_dim, b_dim, batch_length=64, learning_rate=1e-3,
-                rnn_layers=1, normalize_length=10, rnn_type='gru', linear_base=128, drop=0.2):
+                rnn_layers=1, normalize_length=10, rnn_type='gru', linear_base=128, drop=0.2, opt_type='adam'):
         self.s_dim = s_dim
         self.a_dim = a_dim
         self.b_dim = b_dim
@@ -60,7 +60,11 @@ class DRL_Torch(Model):
         self.trade_hidden = None
         self.actor = Actor(s_dim=self.s_dim, a_dim=self.a_dim, b_dim=self.b_dim, rnn_layers=rnn_layers, dp=drop, rnn_type=rnn_type, linear_base=linear_base)
         self.actor = self.actor.to(dev)
-        self.optimizer = optim.Adam(self.actor.parameters(), lr=learning_rate)
+        print(opt_type)
+        if opt_type == 'adam':
+            self.optimizer = optim.Adam(self.actor.parameters(), lr=learning_rate)
+        elif opt_type == 'sgd':
+            self.optimizer = optim.SGD(self.actor.parameters(), lr=learning_rate)
         self.trainer = ModelTrainer(self)
     
     def _trade(self, state, train=False):

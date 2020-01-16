@@ -26,6 +26,10 @@ def download_history(exchange, symble, from_datetime, end_datetime, interval='1h
 
     if interval=='1m':
         delta = minute
+    elif interval=='5m':
+        delta = minute * 5
+    elif interval=='15m':
+        delta = minute * 15
     elif interval=='30m':
         delta = minute * 30
     elif interval=='1h':
@@ -88,4 +92,5 @@ if __name__=='__main__':
     # usd_symbles = [symble for symble in exchange.symbols if symble[-len(basecoin):] == basecoin]
     usd_symbles = ['BTC/USD']
     for symble in tqdm(usd_symbles):
-        download_history(exchange, symble, '2005-05-29 00:00:00', '2019-12-22 00:00:00', '30m', basecoin)
+        download_history(exchange, symble, '2005-05-29 00:00:00', '2019-12-22 00:00:00', '15m', basecoin)
+        download_history(exchange, symble, '2005-05-29 00:00:00', '2019-12-22 00:00:00', '5m', basecoin)
