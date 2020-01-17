@@ -19,7 +19,8 @@
     "data": {
       "trade_bar_count": 200,
       "train_bar_count": 2000,
-      "tick_interval": "60min"
+      "tick_interval": "60min",
+      "data_mode" : "local"
     },
     "train": {
       "fee": 1e-5,
@@ -28,6 +29,10 @@
       "learning_rate": 1e-3,
       "reward_threshold": 0.3,
       "max_training_epoch": 300,
+      "rnn_layers" : 1,
+      "rnn_type" : "gru",
+      "linear_base" : 128,
+      "drop" : 0.2,
       "train_length": 55400,
       "patient" : 100,
       "patient_rounds" : 1

@@ -92,5 +92,5 @@ if __name__=='__main__':
     # usd_symbles = [symble for symble in exchange.symbols if symble[-len(basecoin):] == basecoin]
     usd_symbles = ['BTC/USD']
     for symble in tqdm(usd_symbles):
-        download_history(exchange, symble, '2005-05-29 00:00:00', '2019-12-22 00:00:00', '15m', basecoin)
-        download_history(exchange, symble, '2005-05-29 00:00:00', '2019-12-22 00:00:00', '5m', basecoin)
+        download_history(exchange, symble, '2005-05-29 00:00:00', '2019-12-22 00:00:00', '1h', basecoin)
+        # download_history(exchange, symble, '2005-05-29 00:00:00', '2019-12-22 00:00:00', '5m', basecoin)
