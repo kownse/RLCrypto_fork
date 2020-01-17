@@ -169,7 +169,7 @@ class ModelTrainer:
                     elif lr_type == 'cos':
                         lr_scheduler.step()
 
-                print(lr_scheduler.get_lr())
+                    print(lr_scheduler.get_lr())
 
                 writer.add_scalar('reward/train/sum', np.sum(np.sum(train_reward, axis=1)), e)
                 writer.add_scalar('reward/train/mean', np.mean(train_reward), e)

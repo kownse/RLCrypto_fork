@@ -116,6 +116,7 @@ class PortfolioManager(object):
             ("DRL_Torch", 1, 'gru', 128, 0.2, 720, '1h', 55400, None, 'sgd', ["data/1h/BTC-USD_2013-03-31.csv"]),
             ("DRL_Torch", 1, 'gru', 128, 0.2, 720, '1h', 55400, 'reduce', 'adam', ["data/1h/BTC-USD_2013-03-31.csv"]),
             ("DRL_Torch", 1, 'gru', 128, 0.2, 720, '1h', 55400, 'cos', 'adam', ["data/1h/BTC-USD_2013-03-31.csv"]),
+            ("DRL_Torch", 1, 'gru', 128, 0.2, 720, '1h', 55400, 'cos', 'sgd', ["data/1h/BTC-USD_2013-03-31.csv"]),
             # ("DRL_Torch", 1, 'gru', 128, 0.2, 720, '1h', 55400, None, ["data/1h/BTC-USD_2013-03-31.csv"]),
             # ("DRL_Torch", 1, 'gru', 128, 0.2, 720, '30m', 110000, ["data/USD_30m/BTC-USD_2013-03-31.csv"]),
             # ("DRL_Torch", 2, 'gru', 128, 0.2, 720, '30m', 110000, ["data/USD_30m/BTC-USD_2013-03-31.csv"]),

@@ -1,0 +1,57 @@
+{
+    "models": {
+      "PG_TF": {
+        "model_path": "./model_backup/PG_TF"
+      },
+      "RPG_TF": {
+        "model_path": "./model_backup/RPG_TF"
+      },
+      "PG_Torch": {
+        "model_path": "./model_backup/PG_Torch"
+      },
+      "RPG_Torch": {
+        "model_path": "./model_backup/RPG_Torch"
+      },
+      "DRL_Torch": {
+        "model_path": "./model_backup/DRL_Torch"
+      }
+    },
+    "data": {
+      "trade_bar_count": 200,
+      "train_bar_count": 2000,
+      "tick_interval": "60min"
+    },
+    "train": {
+      "fee": 1e-5,
+      "normalize_length": 10,
+      "batch_length": 512,
+      "learning_rate": 1e-3,
+      "reward_threshold": 0.3,
+      "max_training_epoch": 300,
+      "train_length": 55400,
+      "patient" : 100,
+      "patient_rounds" : 1
+    },
+    "test": {
+      "test_length": 400
+    },
+    "trade": {
+      "base_currency": "usd",
+      "debug_mode": true,
+      "portfolio_config": "./config/portfolio_config.json",
+      "model_type": "DRL_Torch",
+      "account_file": "./config/account.json",
+      "order_type": "limit",
+      "price_discount": 5e-3,
+      "amount_discount": 0.09,
+      "trace_order": true,
+      "trade_time": [
+        55
+      ],
+      "max_asset_percent": 0.4,
+      "max_order_waiting_time": 120
+    },
+    "system": {
+      "log_file": "./log/portfolio_log.csv"
+    }
+  }
