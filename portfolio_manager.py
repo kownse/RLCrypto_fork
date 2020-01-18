@@ -113,20 +113,10 @@ class PortfolioManager(object):
     def build_model_batch(self):
         params = [
             ("DRL_Torch", 1, 'gru', 128, 0.2, 720, '1h', 55400, None, 'adam', ["data/USD_1h/BTC-USD_2013-03-31.csv"]),
-            ("DRL_Torch", 1, 'gru', 128, 0.2, 720, '1h', 55400, None, 'sgd', ["data/USD_1h/BTC-USD_2013-03-31.csv"]),
+            ("DRL_Torch", 1, 'gru', 128, 0.2, 720, '1h', 55400, None, 'adamax', ["data/USD_1h/BTC-USD_2013-03-31.csv"]),
             # ("DRL_Torch", 1, 'gru', 128, 0.2, 720, '1h', 55400, 'reduce', 'adam', ["data/USD_1h/BTC-USD_2013-03-31.csv"]),
             ("DRL_Torch", 1, 'gru', 128, 0.2, 720, '1h', 55400, 'cos', 'adam', ["data/USD_1h/BTC-USD_2013-03-31.csv"]),
-            ("DRL_Torch", 1, 'gru', 128, 0.2, 720, '1h', 55400, 'cos', 'sgd', ["data/USD_1h/BTC-USD_2013-03-31.csv"]),
-            # ("DRL_Torch", 1, 'gru', 128, 0.2, 720, '1h', 55400, None, ["data/1h/BTC-USD_2013-03-31.csv"]),
-            # ("DRL_Torch", 1, 'gru', 128, 0.2, 720, '30m', 110000, ["data/USD_30m/BTC-USD_2013-03-31.csv"]),
-            # ("DRL_Torch", 2, 'gru', 128, 0.2, 720, '30m', 110000, ["data/USD_30m/BTC-USD_2013-03-31.csv"]),
-            # ("DRL_Torch", 1, 'gru', 128, 0.2, 720 * 2, '30m', 110000, ["data/USD_30m/BTC-USD_2013-03-31.csv"]),
-            # ("DRL_Torch", 1, 'gru', 128, 0.2, 720 * 3, '30m', 110000, ["data/USD_30m/BTC-USD_2013-03-31.csv"]),
-            # ("DRL_Torch", 2, 'gru', 128, 0.2, 720 * 2, '30m', 110000, ["data/USD_30m/BTC-USD_2013-03-31.csv"]),
-            # ("DRL_Torch", 1, 'lstm', 128, 0.2, 720, '30m', 110000, ["data/USD_30m/BTC-USD_2013-03-31.csv"]),
-            # ("DRL_Torch", 1, 'gru', 128, 0.2, 768),
-            # ("DRL_Torch", 1, 'lstm', 128, 0.2, 720),
-            # ("DRL_Torch", 2, 'lstm', 128, 0.2, 1536),
+            ("DRL_Torch", 1, 'gru', 128, 0.2, 720, '1h', 55400, 'cos', 'adamax', ["data/USD_1h/BTC-USD_2013-03-31.csv"]),
         ]
 
         processes = []
@@ -149,9 +139,11 @@ class PortfolioManager(object):
             #                                 drop=drop,
             #                                 patient=config.patient,
             #                                 patient_rounds=config.patient_rounds,
-            #                                 data_interval=interval)
+            #                                 data_interval=interval,
+            #                                 lr_type=lr_type,
+            #                                 opt_type=opt_type)
 
-            p = mp.Process(target=ModelTrainer.create_new_model, args=(model_type, 
+            p = mp.Process(target=ModelTrainer.create_new_model, args=(model_type,
                                                                     self.all_asset_data[interval],
                                                                     config.fee,
                                                                     normalize_length,

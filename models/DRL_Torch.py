@@ -61,10 +61,14 @@ class DRL_Torch(Model):
         self.actor = Actor(s_dim=self.s_dim, a_dim=self.a_dim, b_dim=self.b_dim, rnn_layers=rnn_layers, dp=drop, rnn_type=rnn_type, linear_base=linear_base)
         self.actor = self.actor.to(dev)
         print(opt_type)
-        if opt_type == 'adam':
-            self.optimizer = optim.Adam(self.actor.parameters(), lr=learning_rate)
-        elif opt_type == 'sgd':
-            self.optimizer = optim.SGD(self.actor.parameters(), lr=learning_rate)
+        if opt_type is not None:
+            if opt_type == 'adam':
+                self.optimizer = optim.Adam(self.actor.parameters(), lr=learning_rate)
+            elif opt_type == 'adamax':
+                self.optimizer = optim.Adamax(self.actor.parameters(), lr=learning_rate)
+            else:
+                print('not support yet')
+                exit(1)
         self.trainer = ModelTrainer(self)
     
     def _trade(self, state, train=False):
