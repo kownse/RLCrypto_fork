@@ -160,8 +160,6 @@ class ModelTrainer:
                 train_reward, train_actions = model.train(asset_data, c=c, train_length=train_length, epoch=e)
                 test_reward, test_actions = model.back_test(asset_data, c=c, test_length=asset_data.shape[1] - train_length)
                 current_model_reward = np.sum(np.sum(test_reward, axis=1))
-
-                current_model_reward = 0
                 
                 if lr_scheduler:
                     if lr_type == 'reduce':
